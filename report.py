@@ -134,7 +134,7 @@ def build_report(room_name: str, confirmed_items: list[dict], before_path: str, 
         item_table = Table(item_data, colWidths=[90, 120, 330])
         item_table.setStyle(TableStyle([
             ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#0a2138")),
-            ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#cbd5e0')),
+            ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor("#c5e243")),
             ('VALIGN', (0,0), (-1,-1), 'TOP'),
             ('PADDING', (0,0), (-1,-1), 5),
         ]))
