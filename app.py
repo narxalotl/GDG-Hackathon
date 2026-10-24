@@ -47,6 +47,7 @@ room_option = st.sidebar.selectbox(
     "Select Room / Area", 
     ["Living Room", "Kitchen", "Primary Bedroom", "Bathroom", "Balcony / Patio", "Other (Custom)"]
 )
+
 if room_option == "Other (Custom)":
     room_name = st.sidebar.text_input("Enter Custom Room Name", value="Sunroom / Den")
 else:
