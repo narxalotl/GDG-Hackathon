@@ -94,6 +94,15 @@ if before_file and after_file:
             except PipelineError as e:
                 st.session_state.pop("diffs", None)
                 st.error(str(e))
+    if st.button("Generate Official PDF Report & Dispute Letter", type="primary"):
+            output_pdf = "evidence_report.pdf"
+            report.build_report(
+                room_name=room_name,
+                inspection_date=inspection_date, # <--- Pass the sidebar date here
+                confirmed_items=confirmed_items,
+                before_path=before_path,
+                after_path=after_path,
+                output_path=output_pdf
 
     diffs = st.session_state.get("diffs")
     if diffs is not None:
