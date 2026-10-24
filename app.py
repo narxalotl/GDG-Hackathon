@@ -5,11 +5,29 @@ from dotenv import load_dotenv
 # Load environment variables (Gemini API key)
 load_dotenv()
 
-# Import team modules (ensure pipeline.py and report.py are in the same folder)
-# import pipeline  # Uncomment once Person 1's pipeline functions are ready
+# Import team modules
 import report
 
-st.set_page_config(page_title="Move-In/Move-Out Evidence Tool", layout="centered")
+st.set_page_config(page_title="Move-In/Move-Out Evidence Tool", layout="centered", page_icon="🛡️")
+
+# Inject Custom Google-Themed CSS Styling
+st.markdown("""
+    <style>
+        /* Google Color Accent Bar at the Top */
+        .google-bar {
+            height: 6px;
+            width: 100%;
+            background: linear-gradient(90deg, #4285F4 25%, #EA4335 25% 50%, #FBBC05 50% 75%, #34A853 75%);
+            margin-bottom: 20px;
+            border-radius: 3px;
+        }
+        .main-title {
+            color: #202124;
+            font-weight: 700;
+        }
+    </style>
+    <div class="google-bar"></div>
+""", unsafe_allow_html=True)
 
 st.title("Move-In / Move-Out Photo Evidence Tool")
 st.markdown("**GDG Build with AI x Hacktoberfest 2026** — Protect your security deposit with AI-powered analysis and cryptographic evidence reports.")
@@ -28,7 +46,6 @@ with col2:
     after_file = st.file_uploader("Upload After Photo", type=["jpg", "jpeg", "png"], key="after")
 
 if before_file and after_file:
-    # Save uploaded files temporarily so scripts can read them
     os.makedirs("temp", exist_ok=True)
     before_path = os.path.join("temp", before_file.name)
     after_path = os.path.join("temp", after_file.name)
@@ -40,11 +57,8 @@ if before_file and after_file:
 
     st.image([before_path, after_path], caption=["Move-In", "Move-Out"], width=300)
 
-    if st.button("Run AI Analysis"):
-        with st.spinner("Analyzing differences with Gemini..."):
-            # Placeholder for pipeline call:
-            # diffs = pipeline.analyze_photos(before_path, after_path)
-            
+    if st.button("Run AI Analysis", type="primary"):
+        with st.spinner("Analyzing differences with Google AI..."):
             # Mocked data for testing the UI flow
             mock_diffs = [
                 {
@@ -58,7 +72,6 @@ if before_file and after_file:
             st.session_state["confirmed_items"] = mock_diffs
             st.success("Analysis complete!")
 
-    # If items exist, show confirmation and PDF export
     if "confirmed_items" in st.session_state and st.session_state["confirmed_items"]:
         st.subheader("Review Confirmed Differences")
         confirmed_items = st.session_state["confirmed_items"]
