@@ -90,13 +90,22 @@ class PipelineError(Exception):
 _client = None
 
 
-def _get_client():
+def have_server_key():
+    """True if this server/computer has a GEMINI_API_KEY set (in .env, the environment, or Streamlit secrets)."""
+    return bool(os.environ.get("GEMINI_API_KEY", "").strip())
+
+
+def _get_client(api_key=None):
+    """api_key: a key supplied by the person using the app. It is used for that call only and
+    is never saved or shared. Without it, the server's own GEMINI_API_KEY is used."""
     global _client
+    from google import genai   # imported here so fake mode works without the package
+    if api_key and api_key.strip():
+        return genai.Client(api_key=api_key.strip())     # not cached: one visitor's key never reaches another
     if _client is None:
-        key = os.environ.get("GEMINI_API_KEY")
+        key = os.environ.get("GEMINI_API_KEY", "").strip()
         if not key:
-            raise PipelineError("Missing GEMINI_API_KEY. Add it to your .env file.")
-        from google import genai   # imported here so fake mode works without the package
+            raise PipelineError("No API key is set. Add GEMINI_API_KEY to your .env file, or paste your own key in the app.")
         _client = genai.Client(api_key=key)
     return _client
 
@@ -116,13 +125,13 @@ def _friendly(e):
     return "Model call failed: " + text[:300]
 
 
-def _generate(contents):
+def _generate(contents, api_key=None):
     """One model call with a short retry on rate limits. Returns the response text."""
     try:
         from google.genai import types
     except ImportError as e:
         raise PipelineError("Package missing. Run: pip install google-genai") from e
-    client = _get_client()
+    client = _get_client(api_key)
     for attempt in range(4):
         try:
             response = client.models.generate_content(
@@ -205,9 +214,10 @@ def _cache_path(before_path, after_path, sensitivity=3):
 
 
 # --------------------------------------------------------------------------- main function
-def compare_photos(before_path, after_path, use_cache=True, sensitivity=3):
+def compare_photos(before_path, after_path, use_cache=True, sensitivity=3, api_key=None):
     """Return a list of possible differences between two photos (see module docstring).
-    sensitivity: 1 (report only clear, significant problems) to 5 (report subtle ones too)."""
+    sensitivity: 1 (report only clear, significant problems) to 5 (report subtle ones too).
+    api_key: optional. A visitor's own Gemini key; if omitted, the server's GEMINI_API_KEY is used."""
     global LAST_RAW
 
     if os.environ.get("USE_FAKE") == "1":
@@ -227,7 +237,7 @@ def compare_photos(before_path, after_path, use_cache=True, sensitivity=3):
 
     items, last_error = None, None
     for _ in range(2):                                  # one retry if the JSON is bad
-        LAST_RAW = _generate([before, after, prompt])
+        LAST_RAW = _generate([before, after, prompt], api_key)
         try:
             items = _normalize(_extract_json(LAST_RAW))
             break
