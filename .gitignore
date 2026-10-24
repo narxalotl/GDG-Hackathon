@@ -3,4 +3,5 @@ venv/
 __pycache__/
 cache/
 temp/
-evidence_report.pdf
+evidence_report.pdftemp/
+*.pdf
