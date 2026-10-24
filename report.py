@@ -1,85 +1,11 @@
-import hashlib
-import io
 import os
-from xml.sax.saxutils import escape
-
-from PIL import Image, ImageOps
+from datetime import datetime
 from reportlab.lib.pagesizes import letter
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image as RLImage, Table, TableStyle
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image, HRFlowable
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 
-# Google Brand Color Palette
-GOOGLE_BLUE = colors.HexColor("#4285F4")
-GOOGLE_RED = colors.HexColor("#EA4335")
-GOOGLE_GREEN = colors.HexColor("#34A853")
-GOOGLE_YELLOW = colors.HexColor("#FBBC05")
-GOOGLE_DARK = colors.HexColor("#202124")
-
-# NEW: where the verified Virginia rules text lives (checks both folders, since the file
-# currently sits in data/data/). Run the app from the project folder.
-RULES_PATHS = [
-    os.path.join("data", "va_deposit_rules.txt"),
-    os.path.join("data", "data", "va_deposit_rules.txt"),
-]
-
-
-def esc(value) -> str:
-    """NEW: make text safe for ReportLab Paragraphs (model text can contain & or <)."""
-    return escape(str(value))
-
-
-def load_rules_text() -> str:
-    """NEW: return the saved Virginia rules text, or an empty string if the file is missing."""
-    for path in RULES_PATHS:
-        if os.path.exists(path):
-            with open(path, encoding="utf-8", errors="replace") as f:
-                text = f.read().strip()
-            if text:
-                return text
-    return ""
-
-
-def fit_image(path: str, max_w: int = 240, max_h: int = 180) -> RLImage:
-    """NEW: show a photo upright and undistorted, shrunk to fit the box.
-    (The original file and its hash are not changed; only the picture in the PDF is resized.)"""
-    img = Image.open(path)
-    img = ImageOps.exif_transpose(img).convert("RGB")   # phone photos are often stored rotated
-    img.thumbnail((1200, 1200))
-    buf = io.BytesIO()
-    img.save(buf, format="JPEG", quality=85)
-    buf.seek(0)
-    w, h = img.size
-    scale = min(max_w / w, max_h / h)
-    return RLImage(buf, width=w * scale, height=h * scale)
-
-
-def get_file_hash(file_path: str) -> str:
-    """Calculate the SHA-256 cryptographic hash of an original photo for evidence integrity."""
-    sha256_hash = hashlib.sha256()
-    with open(file_path, "rb") as f:
-        for byte_block in iter(lambda: f.read(4096), b""):
-            sha256_hash.update(byte_block)
-    return sha256_hash.hexdigest()
-
-
-def get_image_timestamp(image_path: str) -> str:
-    """Extract timestamp from image EXIF metadata if available."""
-    try:
-        img = Image.open(image_path)
-        exif_data = img._getexif()
-        if exif_data:
-            # Tag 36867 corresponds to DateTimeOriginal in EXIF data
-            for tag_id, value in exif_data.items():
-                if tag_id == 36867:
-                    return str(value)
-    except Exception:
-        pass
-    return "Timestamp not found in EXIF"
-
-
-def build_report(room_name: str, confirmed_items: list[dict], before_path: str, after_path: str, output_path: str) -> str:
-    """Write a PDF evidence report using Google branding and return the file path."""
+def build_report(room_name, confirmed_items, before_path, after_path, output_path="evidence_report.pdf"):
     doc = SimpleDocTemplate(
         output_path,
         pagesize=letter,
@@ -88,170 +14,135 @@ def build_report(room_name: str, confirmed_items: list[dict], before_path: str, 
         topMargin=36,
         bottomMargin=36
     )
-    story = []
+    
     styles = getSampleStyleSheet()
-
-    # Custom Google-Themed Styling Definitions
+    
+    # Custom styles
     title_style = ParagraphStyle(
-        'TitleStyle',
+        'ReportTitle',
         parent=styles['Heading1'],
-        fontSize=18,
-        spaceAfter=4,
-        textColor=GOOGLE_BLUE
+        fontName='Helvetica-Bold',
+        fontSize=20,
+        leading=24,
+        textColor=colors.HexColor('#202124')
     )
+    
     subtitle_style = ParagraphStyle(
-        'SubtitleStyle',
+        'ReportSubtitle',
         parent=styles['Normal'],
+        fontName='Helvetica',
         fontSize=10,
-        textColor=GOOGLE_GREEN,
-        spaceAfter=8
+        leading=14,
+        textColor=colors.HexColor('#5f6368')
     )
+    
     heading_style = ParagraphStyle(
-        'HeadingStyle',
+        'SectionHeading',
         parent=styles['Heading2'],
+        fontName='Helvetica-Bold',
         fontSize=13,
-        spaceBefore=12,
-        spaceAfter=6,
-        textColor=GOOGLE_RED
+        leading=16,
+        textColor=colors.HexColor('#1a73e8')
     )
+    
     body_style = ParagraphStyle(
-        'BodyStyle',
+        'ReportBody',
         parent=styles['Normal'],
+        fontName='Helvetica',
         fontSize=10,
-        spaceAfter=6,
-        textColor=GOOGLE_DARK
+        leading=14,
+        textColor=colors.HexColor('#202124')
     )
-    small_style = ParagraphStyle(
-        'SmallStyle',
-        parent=styles['Normal'],
-        fontSize=8.5,
-        spaceAfter=4,
-        textColor=GOOGLE_DARK
-    )
-    disclaimer_style = ParagraphStyle(
-        'DisclaimerStyle',
-        parent=styles['Normal'],
-        fontSize=9,
-        textColor=colors.HexColor("#C5221F"),  # Dark Google Red for warnings
-        spaceBefore=2,
-        spaceAfter=8
-    )
-
-    # Header and Legal Disclaimer Banner
-    story.append(Paragraph(f"Security Deposit Evidence Report: {esc(room_name)}", title_style))
-    story.append(Paragraph("Move-In / Move-Out Photo Evidence Tool | GDG Build with AI x Hacktoberfest 2026", subtitle_style))
-    story.append(Paragraph("<b>DISCLAIMER:</b> This tool helps you document conditions. It is not legal advice.", disclaimer_style))
-    story.append(Spacer(1, 6))
-
-    # Evidence Integrity & Metadata Table (File hashes & timestamps)
-    story.append(Paragraph("Evidence Integrity & Metadata", heading_style))
-    before_hash = get_file_hash(before_path)
-    after_hash = get_file_hash(after_path)
-    before_time = get_image_timestamp(before_path)
-    after_time = get_image_timestamp(after_path)
-
-    # Table Header text style (white text for contrast on colored headers)
-    th_style = ParagraphStyle('TH', parent=styles['Normal'], fontSize=10, textColor=colors.white)
-
-    meta_data = [
-        [Paragraph("<b>Image Type</b>", th_style), Paragraph("<b>Timestamp</b>", th_style), Paragraph("<b>SHA-256 File Hash</b>", th_style)],
-        [Paragraph("Before (Move-In)", body_style), Paragraph(esc(before_time), body_style), Paragraph(before_hash, body_style)],
-        [Paragraph("After (Move-Out)", body_style), Paragraph(esc(after_time), body_style), Paragraph(after_hash, body_style)]
+    
+    story = []
+    
+    # Google Brand 4-Color Top Accent Bar (Blue, Red, Google Yellow, Green)
+    accent_table = Table([['', '', '', '']], colWidths=[130, 130, 130, 130], rowHeights=[4])
+    accent_table.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (0,0), colors.HexColor('#4285F4')),
+        ('BACKGROUND', (1,0), (1,0), colors.HexColor('#EA4335')),
+        ('BACKGROUND', (2,0), (2,0), colors.HexColor('#FBBC05')), # Google Yellow
+        ('BACKGROUND', (3,0), (3,0), colors.HexColor('#34A853')),
+    ]))
+    story.append(accent_table)
+    story.append(Spacer(1, 15))
+    
+    # Title & Metadata
+    story.append(Paragraph("Move-In/Move-Out Evidence Report", title_style))
+    story.append(Spacer(1, 4))
+    story.append(Paragraph(f"<b>Inspection Area:</b> {room_name}", subtitle_style))
+    
+    # Clean Timestamp (e.g. 7/24/2026, 03:46 PM)
+    timestamp_str = datetime.now().strftime("%m/%d/%Y, %I:%M %p").lstrip("0").replace("/0", "/")
+    story.append(Paragraph(f"<b>Inspection Timestamp:</b> {timestamp_str}", subtitle_style))
+    story.append(Spacer(1, 12))
+    
+    story.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor('#dadce0'), spaceAfter=15))
+    
+    # Visual Comparison Section with Outlined Google Yellow Box
+    story.append(Paragraph("Visual Comparison Vault", heading_style))
+    story.append(Spacer(1, 8))
+    
+    img_width = 230
+    img_height = 170
+    
+    img_before = Image(before_path, width=img_width, height=img_height) if os.path.exists(before_path) else Paragraph("Before Image Not Found", body_style)
+    img_after = Image(after_path, width=img_width, height=img_height) if os.path.exists(after_path) else Paragraph("After Image Not Found", body_style)
+    
+    img_table_data = [
+        [Paragraph("<b>Move-In Baseline</b>", body_style), Paragraph("<b>Move-Out Audit</b>", body_style)],
+        [img_before, img_after]
     ]
-    meta_table = Table(meta_data, colWidths=[100, 110, 330])
-    meta_table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), GOOGLE_BLUE),
-        ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#BDC1C6')),
-        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        ('PADDING', (0, 0), (-1, -1), 6),
-    ]))
-    story.append(meta_table)
-    story.append(Paragraph(
-        "A SHA-256 hash is a fingerprint of the original photo file. If the file is changed in any way, "
-        "its hash changes. Photos shown below are resized for the report.", small_style))
-    story.append(Spacer(1, 10))
-
-    # Side-by-Side Photos Comparison Section
-    story.append(Paragraph("Visual Comparison", heading_style))
-    img_before = fit_image(before_path)   # CHANGED: keeps the real proportions and rotation
-    img_after = fit_image(after_path)
-    img_table = Table([[img_before, img_after]], colWidths=[270, 270])
+    
+    img_table = Table(img_table_data, colWidths=[255, 255])
     img_table.setStyle(TableStyle([
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        ('PADDING', (0, 0), (-1, -1), 2),
+        ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+        ('BACKGROUND', (0,0), (-1,-1), colors.HexColor('#f8f9fa')),
+        ('BOX', (0,0), (-1,-1), 2, colors.HexColor('#FBBC05')), # Google Yellow Outline Box
+        ('INNERGRID', (0,0), (-1,-1), 0.5, colors.HexColor('#dadce0')),
+        ('TOPPADDING', (0,0), (-1,-1), 10),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 10),
+        ('LEFTPADDING', (0,0), (-1,-1), 10),
+        ('RIGHTPADDING', (0,0), (-1,-1), 10),
     ]))
+    
     story.append(img_table)
-    story.append(Spacer(1, 10))
-
-    # Tenant-Confirmed Differences Table
-    story.append(Paragraph("Tenant-Confirmed Differences", heading_style))
-    model_name = os.environ.get("GEMMA_MODEL", "gemma-4-31b-it")
-    story.append(Paragraph(
-        f"These differences were suggested by an AI model ({esc(model_name)}) and then reviewed and "
-        "confirmed by the tenant. The AI can make mistakes.", small_style))
-    if confirmed_items:
-        item_data = [[Paragraph("<b>Category</b>", th_style), Paragraph("<b>Location</b>", th_style), Paragraph("<b>Description & Details</b>", th_style)]]
-        for item in confirmed_items:
-            # CHANGED: missing confidence now shows "Unknown" instead of claiming "High"
-            desc_text = (f"{esc(item.get('description', ''))} (Severity: {esc(str(item.get('severity', 'unknown')).capitalize())}, "
-                         f"AI confidence: {esc(str(item.get('confidence', 'unknown')).capitalize())})")
-            item_data.append([
-                Paragraph(esc(str(item.get('category', 'other')).capitalize()), body_style),
-                Paragraph(esc(item.get('location', 'N/A')), body_style),
-                Paragraph(desc_text, body_style)
-            ])
-        item_table = Table(item_data, colWidths=[90, 120, 330])
-        item_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), GOOGLE_GREEN),
-            ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor("#BDC1C6")),
-            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-            ('PADDING', (0, 0), (-1, -1), 6),
-        ]))
-        story.append(item_table)
+    story.append(Spacer(1, 20))
+    
+    # Findings & Tenant Defense Notes Section
+    story.append(Paragraph("Inspection Findings & Tenant Defense Notes", heading_style))
+    story.append(Spacer(1, 8))
+    
+    if not confirmed_items:
+        story.append(Paragraph("No discrepancy items recorded.", body_style))
     else:
-        story.append(Paragraph("No differences were confirmed for this room.", body_style))
-
-    story.append(Spacer(1, 10))
-
-    # Draft Security Deposit Letter Template
-    # CHANGED: neutral wording. The old text called the items "pre-existing or disputed" and mentioned
-    # "joint records", which the tool cannot know. The tenant now decides what to say about each item.
-    story.append(Paragraph("Draft Security Deposit Letter (edit before sending)", heading_style))
-    letter_text = (
-        "<b>To:</b> Leasing Office / Property Management<br/>"
-        "<b>Subject:</b> Security deposit itemization and return - [Unit address]<br/><br/>"
-        "Dear Property Management,<br/><br/>"
-        "I am writing about the security deposit for the unit at [Unit address]. I documented the condition of the "
-        "<b>" + esc(room_name) + "</b> at move-in and move-out with photographs. The attached report records "
-        "a SHA-256 fingerprint (hash) of each original photo file.<br/><br/>"
-        "The report lists the differences I reviewed between the two sets of photographs. "
-        "<font color='#C5221F'>[Tenant: edit this paragraph. For each item, say whether it is normal wear and tear, "
-        "was already there at move-in, or something you accept responsibility for.]</font><br/><br/>"
-        "Please send me an itemized written accounting of any deductions from my security deposit and return the "
-        "remaining balance within the deadlines required by the Virginia Residential Landlord and Tenant Act "
-        "(see the Virginia rules reference in the attached report).<br/><br/>"
-        "Sincerely,<br/>"
-        "[Tenant Name]"
-    )
-    story.append(Paragraph(letter_text, body_style))
-
-    # NEW: the verified Virginia rules text that the team saved in data/va_deposit_rules.txt
-    story.append(Spacer(1, 10))
-    story.append(Paragraph("Virginia Rules Reference", heading_style))
-    rules_text = load_rules_text()
-    if rules_text:
-        story.append(Paragraph(
-            "Text copied from the official source by the project team. Check the current statute before relying on it.",
-            small_style))
-        for block in rules_text.split("\n\n"):
-            block = block.strip()
-            if block:
-                story.append(Paragraph(esc(block).replace("\n", "<br/>"), small_style))
-    else:
-        story.append(Paragraph(
-            "[Rules reference not found. Add the verified text to data/va_deposit_rules.txt.]", small_style))
-
-    # Build PDF document
+        for idx, item in enumerate(confirmed_items):
+            classification = item.get('classification', 'Normal Wear')
+            desc = item.get('description', '')
+            tenant_note = item.get('tenant_note', 'No tenant defense note provided.')
+            
+            is_damage = "Damage" in classification
+            status_color = "#c5221f" if is_damage else "#137333"
+            
+            item_data = [
+                [Paragraph(f"<b>Item {idx+1}: {classification}</b>", ParagraphStyle('ItemHead', parent=body_style, textColor=colors.HexColor(status_color)))],
+                [Paragraph(f"<b>AI Observation:</b> {desc}", body_style)],
+                [Paragraph(f"<b>Tenant Defense / Context:</b> {tenant_note}", body_style)]
+            ]
+            
+            item_table = Table(item_data, colWidths=[510])
+            item_table.setStyle(TableStyle([
+                ('BACKGROUND', (0,0), (-1,-1), colors.HexColor('#ffffff')),
+                ('BOX', (0,0), (-1,-1), 1, colors.HexColor('#dadce0')),
+                ('LEFTPADDING', (0,0), (-1,-1), 12),
+                ('RIGHTPADDING', (0,0), (-1,-1), 12),
+                ('TOPPADDING', (0,0), (-1,-1), 10),
+                ('BOTTOMPADDING', (0,0), (-1,-1), 10),
+                ('LINEBELOW', (0,0), (0,0), 0.5, colors.HexColor('#f1f3f4')),
+            ]))
+            
+            story.append(item_table)
+            story.append(Spacer(1, 10))
+            
     doc.build(story)
-    return output_path
