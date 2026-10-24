@@ -4,10 +4,6 @@ from dotenv import load_dotenv
 
 load_dotenv()
 import report
-import db
-
-# Initialize SQLite Database (with encryption support)
-db.init_db()
 
 # Page Configuration & Google-Themed Material Design Styling
 st.set_page_config(
@@ -45,15 +41,12 @@ st.markdown("""
 
 # App Header
 st.title("🛡️ VaultInspect: Move-In / Move-Out Evidence Portal")
-st.markdown("**GDG Build with AI x Hacktoberfest 2026** — Secure SQLite Database, AES-256 Encryption & Dispute Engine.")
+st.markdown("**GDG Build with AI x Hacktoberfest 2026** — Secure Photo Evidence & Dispute Engine.")
 
-# --- SIDEBAR: USER PORTAL, SETTINGS & HISTORY ---
-st.sidebar.header("🔐 User Portal & Cloud Vault")
+# --- SIDEBAR: USER PORTAL & SETTINGS ---
+st.sidebar.header("🔐 User Portal Settings")
 user_role = st.sidebar.selectbox("Select Portal Role", ["🏠 Renter (Tenant)", "🏢 Leasing Office / Landlord"])
 user_email = st.sidebar.text_input("Account Email", value="renter@example.com" if "Renter" in user_role else "manager@apts.com")
-
-# Register/ensure user in SQLite
-db.register_user(user_email, user_role)
 
 st.sidebar.markdown("---")
 st.sidebar.header("📍 Inspection Area")
@@ -68,18 +61,8 @@ if room_option == "Other (Custom)":
 else:
     room_name = room_option
 
-# Display Past Inspection History from SQLite (with decrypted notes)
-st.sidebar.markdown("---")
-st.sidebar.header("📂 Encrypted Audit History")
-past_records = db.get_user_inspections(user_email)
-if past_records:
-    for rec in past_records:
-        st.sidebar.text(f"• {rec['room_name']} ({rec['created_at'][:10]})")
-else:
-    st.sidebar.caption("No past inspections found in SQLite for this email.")
-
 # --- MAIN UPLOAD SECTION ---
-st.markdown("### 📸 Photo Evidence Vault (AES-256 Encrypted Storage)")
+st.markdown("### 📸 Photo Evidence Vault")
 col1, col2 = st.columns(2)
 
 with col1:
@@ -148,16 +131,7 @@ if before_file and after_file:
             item['tenant_note'] = tenant_note
             st.markdown("")
 
-        if st.button("📑 Generate Official Aesthetic PDF Report & Save to Secure SQL Vault", type="primary"):
-            # Save securely into SQLite database with encryption
-            db.save_secure_inspection(
-                user_email=user_email,
-                room_name=room_name,
-                before_path=before_path,
-                after_path=after_path,
-                confirmed_items=confirmed_items
-            )
-            
+        if st.button("📑 Generate Official Aesthetic PDF Report & Dispute Letter", type="primary"):
             output_pdf = "evidence_report.pdf"
             report.build_report(
                 room_name=room_name,
@@ -168,7 +142,7 @@ if before_file and after_file:
                 output_path=output_pdf
             )
             
-            st.success("Inspection securely encrypted and saved to SQLite database!")
+            st.success("Report generated successfully!")
             
             with open(output_pdf, "rb") as pdf_file:
                 st.download_button(
