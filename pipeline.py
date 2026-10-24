@@ -39,7 +39,7 @@ load_dotenv()
 MODEL = os.environ.get("GEMMA_MODEL", "gemma-4-31b-it")
 PROMPT_VERSION = "v1"          # bump this when you change PROMPT so old cache is ignored
 CACHE_DIR = Path("cache")
-MAX_SIDE = 1600                # shrink big phone photos: faster, cheaper, still plenty of detail
+MAX_SIDE = int(os.environ.get("IMAGE_MAX_SIDE", "1280"))   # shrink big phone photos: faster, fewer errors
 
 CATEGORIES = {"damage", "stain", "missing_item", "cleanliness", "other"}
 SEVERITIES = {"minor", "moderate", "major"}
@@ -98,6 +98,9 @@ def _friendly(e):
         return "Rate limit reached. Wait a minute and try again."
     if code in (401, 403):
         return "The API key was rejected. Check GEMINI_API_KEY in your .env file."
+    if code in (500, 503, 504):
+        return ("The model service had a temporary error. Try again in a minute, or set "
+                "GEMMA_MODEL=gemma-4-26b-a4b-it in .env, or use smaller photos.")
     if code == 404 or "not found" in text.lower():
         return f"Model '{MODEL}' was not found. Check the exact name in Google AI Studio."
     return "Model call failed: " + text[:300]
@@ -110,7 +113,7 @@ def _generate(contents):
     except ImportError as e:
         raise PipelineError("Package missing. Run: pip install google-genai") from e
     client = _get_client()
-    for attempt in range(3):
+    for attempt in range(4):
         try:
             response = client.models.generate_content(
                 model=MODEL,
@@ -119,8 +122,11 @@ def _generate(contents):
             )
             return response.text or ""
         except Exception as e:                      # noqa: BLE001
-            if getattr(e, "code", None) == 429 and attempt < 2:
-                time.sleep(15)
+            code = getattr(e, "code", None)
+            if code in (429, 500, 503, 504) and attempt < 3:
+                wait = 15 if code == 429 else 5 * (attempt + 1)   # temporary: wait, then retry
+                print(f"(model busy, error {code}; retrying in {wait}s...)", file=sys.stderr)
+                time.sleep(wait)
                 continue
             raise PipelineError(_friendly(e)) from e
     return ""

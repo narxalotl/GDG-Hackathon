@@ -7,6 +7,7 @@ load_dotenv()
 
 # Import team modules
 import report
+from pipeline import compare_photos, PipelineError, MODEL   # CHANGED: the real AI function
 
 st.set_page_config(page_title="Move-In/Move-Out Evidence Tool", layout="centered", page_icon="🏡")
 
@@ -32,9 +33,17 @@ st.markdown("""
 st.title("Move-In / Move-Out Photo Evidence Tool")
 st.markdown("**GDG Build with AI x Hacktoberfest 2026** — Protect your security deposit with AI-powered analysis and cryptographic evidence reports.")
 
+# NEW: honest notices (privacy + the AI suggests, you decide + not legal advice)
+st.info(
+    "Your photos are sent to Google's Gemini API for analysis. The AI only suggests "
+    "**possible** differences, and you decide which ones are real. This tool helps you "
+    "document conditions. It is not legal advice."
+)
+
 # Sidebar for settings & room name
 st.sidebar.header("Inspection Settings")
 room_name = st.sidebar.text_input("Room / Area Name", value="Living Room")
+st.sidebar.caption(f"AI model: {MODEL}")   # NEW: shows the model name (needed for the Gemma 4 track)
 
 col1, col2 = st.columns(2)
 with col1:
@@ -47,52 +56,76 @@ with col2:
 
 if before_file and after_file:
     os.makedirs("temp", exist_ok=True)
-    before_path = os.path.join("temp", before_file.name)
-    after_path = os.path.join("temp", after_file.name)
-    
+    # CHANGED: prefix the names so two uploads with the same file name cannot overwrite each other
+    before_path = os.path.join("temp", "before_" + before_file.name)
+    after_path = os.path.join("temp", "after_" + after_file.name)
+
     with open(before_path, "wb") as f:
         f.write(before_file.getbuffer())
     with open(after_path, "wb") as f:
         f.write(after_file.getbuffer())
 
+    # NEW: if the user picks different photos, forget the old results
+    signature = (before_file.name, before_file.size, after_file.name, after_file.size)
+    if st.session_state.get("signature") != signature:
+        st.session_state["signature"] = signature
+        st.session_state.pop("diffs", None)
+        st.session_state.pop("pdf_bytes", None)
+
     st.image([before_path, after_path], caption=["Move-In", "Move-Out"], width=300)
 
     if st.button("Run AI Analysis", type="primary"):
-        with st.spinner("Analyzing differences with Google AI..."):
-            # Mocked data for testing the UI flow
-            mock_diffs = [
-                {
-                    "category": "damage",
-                    "location": "Wall",
-                    "description": "Scuff mark and small dent near baseboard",
-                    "severity": "minor",
-                    "confidence": "high"
-                }
-            ]
-            st.session_state["confirmed_items"] = mock_diffs
-            st.success("Analysis complete!")
+        with st.spinner("Analyzing differences with Gemma 4... this can take up to a minute."):
+            # CHANGED: the real model call replaces the mocked data
+            try:
+                st.session_state["diffs"] = compare_photos(before_path, after_path)
+                st.session_state["run_id"] = st.session_state.get("run_id", 0) + 1
+                st.session_state.pop("pdf_bytes", None)
+                st.success("Analysis complete!")
+            except PipelineError as e:
+                st.session_state.pop("diffs", None)
+                st.error(str(e))
 
-    if "confirmed_items" in st.session_state and st.session_state["confirmed_items"]:
-        st.subheader("Review Confirmed Differences")
-        confirmed_items = st.session_state["confirmed_items"]
-        
-        for idx, item in enumerate(confirmed_items):
-            st.write(f"- **{item['category'].capitalize()}** at {item['location']}: {item['description']} *(Severity: {item['severity']})*")
+    diffs = st.session_state.get("diffs")
+    if diffs is not None:
+        st.subheader("Review Possible Differences")
 
-        if st.button("Generate Official PDF Report & Dispute Letter"):
-            output_pdf = "evidence_report.pdf"
-            report.build_report(
-                room_name=room_name,
-                confirmed_items=confirmed_items,
-                before_path=before_path,
-                after_path=after_path,
-                output_path=output_pdf
+        # CHANGED: the tenant confirms each item. Only checked items go in the report.
+        confirmed_items = []
+        if not diffs:
+            st.success("The AI did not find meaningful differences between these photos.")
+        else:
+            st.caption("Check the boxes for the differences that are real. Only checked items go in the report.")
+            run_id = st.session_state.get("run_id", 0)
+            for idx, item in enumerate(diffs):
+                label = (f"**{item['category'].capitalize()}** at {item['location']}: {item['description']} "
+                         f"*(Severity: {item['severity']}, AI confidence: {item['confidence']})*")
+                if st.checkbox(label, key=f"confirm_{run_id}_{idx}"):
+                    confirmed_items.append(item)
+
+        if confirmed_items:
+            if st.button("Generate Official PDF Report & Dispute Letter"):
+                output_pdf = "evidence_report.pdf"
+                try:
+                    report.build_report(
+                        room_name=room_name,
+                        confirmed_items=confirmed_items,
+                        before_path=before_path,
+                        after_path=after_path,
+                        output_path=output_pdf
+                    )
+                    with open(output_pdf, "rb") as pdf_file:
+                        st.session_state["pdf_bytes"] = pdf_file.read()
+                except Exception as e:   # show a readable message instead of crashing
+                    st.error(f"Could not build the report: {e}")
+        elif diffs:
+            st.info("Check at least one difference above to generate a report.")
+
+        # CHANGED: download button lives outside the generate button so it does not vanish on rerun
+        if st.session_state.get("pdf_bytes"):
+            st.download_button(
+                label="Download Evidence Report (PDF)",
+                data=st.session_state["pdf_bytes"],
+                file_name=f"{room_name.replace(' ', '_')}_Evidence_Report.pdf",
+                mime="application/pdf"
             )
-            
-            with open(output_pdf, "rb") as pdf_file:
-                st.download_button(
-                    label="Download Signed Evidence Report (PDF)",
-                    data=pdf_file,
-                    file_name=f"{room_name.replace(' ', '_')}_Evidence_Report.pdf",
-                    mime="application/pdf"
-                )
