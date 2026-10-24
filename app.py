@@ -8,7 +8,7 @@ load_dotenv()
 # Import team modules
 import report
 
-st.set_page_config(page_title="Move-In/Move-Out Evidence Tool", layout="centered", page_icon="🍀")
+st.set_page_config(page_title="Move-In/Move-Out Evidence Tool", layout="centered", page_icon="🏡")
 
 # Inject Custom Google-Themed CSS Styling
 st.markdown("""
