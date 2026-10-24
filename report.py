@@ -5,7 +5,7 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, Tabl
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 
-def build_report(room_name, confirmed_items, before_path, after_path, output_path="evidence_report.pdf"):
+def build_report(room_name, inspection_date, confirmed_items, before_path, after_path, output_path="evidence_report.pdf"):
     doc = SimpleDocTemplate(
         output_path,
         pagesize=letter,
@@ -17,7 +17,6 @@ def build_report(room_name, confirmed_items, before_path, after_path, output_pat
     
     styles = getSampleStyleSheet()
     
-    # Custom styles
     title_style = ParagraphStyle(
         'ReportTitle',
         parent=styles['Heading1'],
@@ -72,15 +71,17 @@ def build_report(room_name, confirmed_items, before_path, after_path, output_pat
     story.append(Spacer(1, 4))
     story.append(Paragraph(f"<b>Inspection Area:</b> {room_name}", subtitle_style))
     
-    # Clean Timestamp (e.g. 7/24/2026, 03:46 PM)
-    timestamp_str = datetime.now().strftime("%m/%d/%Y, %I:%M %p").lstrip("0").replace("/0", "/")
+    # Clean 12-Hour Timestamp using selected inspection date
+    date_formatted = inspection_date.strftime("%m/%d/%Y") if hasattr(inspection_date, 'strftime') else str(inspection_date)
+    time_formatted = datetime.now().strftime("%I:%M %p")
+    timestamp_str = f"{date_formatted}, {time_formatted}"
     story.append(Paragraph(f"<b>Inspection Timestamp:</b> {timestamp_str}", subtitle_style))
     story.append(Spacer(1, 12))
     
     story.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor('#dadce0'), spaceAfter=15))
     
-    # Visual Comparison Section with Outlined Google Yellow Box
-    story.append(Paragraph("Visual Comparison Vault", heading_style))
+    # Visual Comparison Section ("Visual Comparison of Images") with Google Yellow Box
+    story.append(Paragraph("Visual Comparison of Images", heading_style))
     story.append(Spacer(1, 8))
     
     img_width = 230
@@ -110,8 +111,8 @@ def build_report(room_name, confirmed_items, before_path, after_path, output_pat
     story.append(img_table)
     story.append(Spacer(1, 20))
     
-    # Findings & Tenant Defense Notes Section
-    story.append(Paragraph("Inspection Findings & Tenant Defense Notes", heading_style))
+    # Tenant Confirmed Differences & Defense Notes Section
+    story.append(Paragraph("Tenant Confirmed Differences & Defense Notes", heading_style))
     story.append(Spacer(1, 8))
     
     if not confirmed_items:
@@ -145,4 +146,34 @@ def build_report(room_name, confirmed_items, before_path, after_path, output_pat
             story.append(item_table)
             story.append(Spacer(1, 10))
             
+    story.append(Spacer(1, 10))
+    
+    # Professional Draft Deposit Dispute Letter Section
+    story.append(Paragraph("Draft Security Deposit Dispute & Evidence Summary", heading_style))
+    story.append(Spacer(1, 8))
+    
+    letter_text = (
+        "Dear Property Management / Landlord,<br/><br/>"
+        f"Please accept this formal documentation regarding the condition of <b>{room_name}</b> as captured during our move-in baseline and move-out audit inspections. "
+        "The accompanying photographic evidence and verified condition notes have been compiled to ensure complete transparency and accuracy regarding the property's state.<br/><br/>"
+        "As detailed in the inspection findings above, noted items reflect either normal residential wear or have corresponding tenant defense context documenting their pre-existing or minor nature. "
+        "We kindly request that this evidence be taken into full consideration during the security deposit reconciliation process, and that any unwarranted deductions for standard wear and tear be waived.<br/><br/>"
+        "Thank you for your prompt attention to this matter and for your cooperation in maintaining a fair and transparent lease agreement.<br/><br/>"
+        "Sincerely,<br/>"
+        "Tenant / Resident"
+    )
+    
+    letter_data = [[Paragraph(letter_text, body_style)]]
+    letter_table = Table(letter_data, colWidths=[510])
+    letter_table.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,-1), colors.HexColor('#f8f9fa')),
+        ('BOX', (0,0), (-1,-1), 1, colors.HexColor('#dadce0')),
+        ('LEFTPADDING', (0,0), (-1,-1), 14),
+        ('RIGHTPADDING', (0,0), (-1,-1), 14),
+        ('TOPPADDING', (0,0), (-1,-1), 12),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 12),
+    ]))
+    
+    story.append(letter_table)
+    
     doc.build(story)
