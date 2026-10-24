@@ -5,6 +5,13 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image as RL
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 
+# Google Brand Color Palette
+GOOGLE_BLUE = colors.HexColor("#4285F4")
+GOOGLE_RED = colors.HexColor("#EA4335")
+GOOGLE_GREEN = colors.HexColor("#34A853")
+GOOGLE_YELLOW = colors.HexColor("#FBBC05")
+GOOGLE_DARK = colors.HexColor("#202124")
+
 def get_file_hash(file_path: str) -> str:
     """Calculate the SHA-256 cryptographic hash of an original photo for evidence integrity."""
     sha256_hash = hashlib.sha256()
@@ -28,7 +35,7 @@ def get_image_timestamp(image_path: str) -> str:
     return "Timestamp not found in EXIF"
 
 def build_report(room_name: str, confirmed_items: list[dict], before_path: str, after_path: str, output_path: str) -> str:
-    """Write a PDF evidence report and return the file path."""
+    """Write a PDF evidence report using Google branding and return the file path."""
     doc = SimpleDocTemplate(
         output_path, 
         pagesize=letter, 
@@ -40,20 +47,20 @@ def build_report(room_name: str, confirmed_items: list[dict], before_path: str, 
     story = []
     styles = getSampleStyleSheet()
     
-    # Custom styling definitions
+    # Custom Google-Themed Styling Definitions
     title_style = ParagraphStyle(
         'TitleStyle',
         parent=styles['Heading1'],
         fontSize=18,
-        spaceAfter=6,
-        textColor=colors.HexColor("#3ec58d")
+        spaceAfter=4,
+        textColor=GOOGLE_BLUE
     )
     subtitle_style = ParagraphStyle(
         'SubtitleStyle',
         parent=styles['Normal'],
         fontSize=10,
-        textColor=colors.HexColor("#26aca5"),
-        spaceAfter=12
+        textColor=GOOGLE_GREEN,
+        spaceAfter=8
     )
     heading_style = ParagraphStyle(
         'HeadingStyle',
@@ -61,21 +68,21 @@ def build_report(room_name: str, confirmed_items: list[dict], before_path: str, 
         fontSize=13,
         spaceBefore=12,
         spaceAfter=6,
-        textColor=colors.HexColor("#b48623")
+        textColor=GOOGLE_RED
     )
     body_style = ParagraphStyle(
         'BodyStyle',
         parent=styles['Normal'],
         fontSize=10,
         spaceAfter=6,
-        textColor=colors.HexColor("#874fc7")
+        textColor=GOOGLE_DARK
     )
     disclaimer_style = ParagraphStyle(
         'DisclaimerStyle',
         parent=styles['Normal'],
         fontSize=9,
-        textColor=colors.HexColor("#812c2c"),
-        spaceBefore=4,
+        textColor=colors.HexColor("#C5221F"), # Dark Google Red for warnings
+        spaceBefore=2,
         spaceAfter=8
     )
 
@@ -83,7 +90,7 @@ def build_report(room_name: str, confirmed_items: list[dict], before_path: str, 
     story.append(Paragraph(f"Security Deposit Evidence Report: {room_name}", title_style))
     story.append(Paragraph("Move-In / Move-Out Photo Evidence Tool | GDG Build with AI x Hacktoberfest 2026", subtitle_style))
     story.append(Paragraph("<b>DISCLAIMER:</b> This tool helps you document conditions. It is not legal advice.", disclaimer_style))
-    story.append(Spacer(1, 8))
+    story.append(Spacer(1, 6))
 
     # Evidence Integrity & Metadata Table (File hashes & timestamps)
     story.append(Paragraph("Evidence Integrity & Metadata", heading_style))
@@ -92,17 +99,20 @@ def build_report(room_name: str, confirmed_items: list[dict], before_path: str, 
     before_time = get_image_timestamp(before_path)
     after_time = get_image_timestamp(after_path)
 
+    # Table Header text style (white text for contrast on colored headers)
+    th_style = ParagraphStyle('TH', parent=styles['Normal'], fontSize=10, textColor=colors.white)
+
     meta_data = [
-        [Paragraph("<b>Image Type</b>", body_style), Paragraph("<b>Timestamp</b>", body_style), Paragraph("<b>SHA-256 File Hash</b>", body_style)],
+        [Paragraph("<b>Image Type</b>", th_style), Paragraph("<b>Timestamp</b>", th_style), Paragraph("<b>SHA-256 File Hash</b>", th_style)],
         [Paragraph("Before (Move-In)", body_style), Paragraph(before_time, body_style), Paragraph(before_hash, body_style)],
         [Paragraph("After (Move-Out)", body_style), Paragraph(after_time, body_style), Paragraph(after_hash, body_style)]
     ]
     meta_table = Table(meta_data, colWidths=[100, 110, 330])
     meta_table.setStyle(TableStyle([
-        ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#114208")),
-        ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#cbd5e0')),
+        ('BACKGROUND', (0,0), (-1,0), GOOGLE_BLUE),
+        ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#BDC1C6')),
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-        ('PADDING', (0,0), (-1,-1), 5),
+        ('PADDING', (0,0), (-1,-1), 6),
     ]))
     story.append(meta_table)
     story.append(Spacer(1, 10))
@@ -123,7 +133,7 @@ def build_report(room_name: str, confirmed_items: list[dict], before_path: str, 
     # Tenant-Confirmed Differences Table
     story.append(Paragraph("Tenant-Confirmed Differences", heading_style))
     if confirmed_items:
-        item_data = [[Paragraph("<b>Category</b>", body_style), Paragraph("<b>Location</b>", body_style), Paragraph("<b>Description & Details</b>", body_style)]]
+        item_data = [[Paragraph("<b>Category</b>", th_style), Paragraph("<b>Location</b>", th_style), Paragraph("<b>Description & Details</b>", th_style)]]
         for item in confirmed_items:
             desc_text = f"{item.get('description', '')} (Severity: {item.get('severity', 'minor').capitalize()}, Confidence: {item.get('confidence', 'high').capitalize()})"
             item_data.append([
@@ -133,10 +143,10 @@ def build_report(room_name: str, confirmed_items: list[dict], before_path: str, 
             ])
         item_table = Table(item_data, colWidths=[90, 120, 330])
         item_table.setStyle(TableStyle([
-            ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#0a2138")),
-            ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor("#c5e243")),
+            ('BACKGROUND', (0,0), (-1,0), GOOGLE_GREEN),
+            ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor("#BDC1C6")),
             ('VALIGN', (0,0), (-1,-1), 'TOP'),
-            ('PADDING', (0,0), (-1,-1), 5),
+            ('PADDING', (0,0), (-1,-1), 6),
         ]))
         story.append(item_table)
     else:
