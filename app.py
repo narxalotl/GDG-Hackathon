@@ -1,28 +1,21 @@
 import streamlit as st
 import os
-from dotenv import load_dotenv
 from datetime import date
+from dotenv import load_dotenv
 
-# Load environment variables (Gemini API key)
 load_dotenv()
-
-# Import team modules
 import report
-from pipeline import compare_photos, PipelineError, MODEL   # CHANGED: the real AI function
 
-st.set_page_config(page_title="Move-In/Move-Out Evidence Tool", layout="centered", page_icon="🏡")
+# Page Configuration & Clean Theme
+st.set_page_config(
+    page_title="Move-In/Move-Out Evidence Tool", 
+    layout="centered", 
+    page_icon="🏡"
+)
 
-# Inject Custom Google-Themed CSS Styling
+# Minimal CSS just for the Google top accent bar and status pills
 st.markdown("""
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&display=swap');
-        
-        html, body, [class*="css"] {
-            font-family: 'Google Sans', sans-serif;
-            color: #202124;
-        }
-        
-        /* Google 4-Color Top Accent Bar */
         .google-bar {
             height: 5px;
             width: 100%;
@@ -30,34 +23,6 @@ st.markdown("""
             margin-bottom: 25px;
             border-radius: 4px;
         }
-        
-        .stApp {
-            background-color: #f8f9fa;
-        }
-        
-        /* Material Card Container */
-        .card {
-            background-color: #ffffff;
-            border: 1px solid #dadce0;
-            border-radius: 12px;
-            padding: 24px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-            margin-bottom: 20px;
-        }
-        
-        .stButton>button {
-            background-color: #1a73e8;
-            color: white;
-            border-radius: 4px;
-            font-weight: 500;
-            border: none;
-        }
-        .stButton>button:hover {
-            background-color: #1557b0;
-            color: white;
-        }
-        
-        /* Color-Coded Status Pills */
         .pill-normal {
             background-color: #e6f4ea;
             color: #137333;
@@ -81,6 +46,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # App Header
+st.title("Move-In/Move-Out Evidence Tool")
 st.markdown("GDG Build with AI x Hacktoberfest 2026")
 
 # --- SIDEBAR: ENHANCED SETTINGS ---
@@ -119,8 +85,7 @@ if st.sidebar.button("🔄 Reset Session"):
         del st.session_state[key]
     st.rerun()
 
-# --- MAIN UPLOAD SECTION (Wrapped in Card Container) ---
-st.markdown('<div class="card">', unsafe_allow_html=True)
+# --- MAIN UPLOAD SECTION ---
 col1, col2 = st.columns(2)
 
 with col1:
@@ -130,7 +95,6 @@ with col1:
 with col2:
     st.subheader("Move-Out Photo")
     after_file = st.file_uploader("Upload After Photo", type=["jpg", "jpeg", "png"], key="after")
-st.markdown('</div>', unsafe_allow_html=True)
 
 if before_file and after_file:
     os.makedirs("temp", exist_ok=True)
@@ -142,7 +106,6 @@ if before_file and after_file:
     with open(after_path, "wb") as f:
         f.write(after_file.getbuffer())
 
-    st.markdown('<div class="card">', unsafe_allow_html=True)
     st.image([before_path, after_path], caption=["Move-In", "Move-Out"], width=300)
 
     if st.button("Run Analysis", type="primary"):
@@ -167,10 +130,9 @@ if before_file and after_file:
             ]
             st.session_state["confirmed_items"] = mock_diffs
             st.success("Analysis complete!")
-    st.markdown('</div>', unsafe_allow_html=True)
 
     if "confirmed_items" in st.session_state and st.session_state["confirmed_items"]:
-        st.markdown('<div class="card">', unsafe_allow_html=True)
+        st.markdown("---")
         st.subheader("Review Confirmed Differences & Add Tenant Notes")
         confirmed_items = st.session_state["confirmed_items"]
         
@@ -212,4 +174,3 @@ if before_file and after_file:
                     file_name=f"{room_name.replace(' ', '_')}_Evidence_Report.pdf",
                     mime="application/pdf"
                 )
-        st.markdown('</div>', unsafe_allow_html=True)
