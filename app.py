@@ -1,6 +1,7 @@
 import streamlit as st
 import os
 from dotenv import load_dotenv
+from datetime import date
 
 # Load environment variables (Gemini API key)
 load_dotenv()
