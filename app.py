@@ -17,9 +17,10 @@ st.markdown("""
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&display=swap');
         
+        /* Force clean readable text across light and dark modes */
         html, body, [class*="css"] {
             font-family: 'Google Sans', sans-serif;
-            color: #202124;
+            color: #1f2937 !important;
         }
         
         /* Google 4-Color Top Accent Bar */
@@ -31,11 +32,7 @@ st.markdown("""
             border-radius: 4px;
         }
         
-        .stApp {
-            background-color: #f8f9fa;
-        }
-        
-        /* Material Card Container */
+        /* Material Card Container with high-contrast background */
         .card {
             background-color: #ffffff;
             border: 1px solid #dadce0;
@@ -43,24 +40,25 @@ st.markdown("""
             padding: 24px;
             box-shadow: 0 1px 3px rgba(0,0,0,0.05);
             margin-bottom: 20px;
+            color: #1f2937 !important;
         }
         
         .stButton>button {
             background-color: #1a73e8;
-            color: white;
+            color: white !important;
             border-radius: 4px;
             font-weight: 500;
             border: none;
         }
         .stButton>button:hover {
             background-color: #1557b0;
-            color: white;
+            color: white !important;
         }
         
         /* Color-Coded Status Pills */
         .pill-normal {
             background-color: #e6f4ea;
-            color: #137333;
+            color: #137333 !important;
             padding: 4px 10px;
             border-radius: 12px;
             font-weight: 500;
@@ -69,7 +67,7 @@ st.markdown("""
         }
         .pill-damage {
             background-color: #fce8e6;
-            color: #c5221f;
+            color: #c5221f !important;
             padding: 4px 10px;
             border-radius: 12px;
             font-weight: 500;
