@@ -42,7 +42,16 @@ st.info(
 
 # Sidebar for settings & room name
 st.sidebar.header("Inspection Settings")
-room_name = st.sidebar.text_input("Room / Area Name", value="Living Room")
+
+room_option = st.sidebar.selectbox(
+    "Select Room / Area", 
+    ["Living Room", "Kitchen", "Primary Bedroom", "Bathroom", "Balcony / Patio", "Other (Custom)"]
+)
+if room_option == "Other (Custom)":
+    room_name = st.sidebar.text_input("Enter Custom Room Name", value="Sunroom / Den")
+else:
+    room_name = room_option
+
 st.sidebar.caption(f"AI model: {MODEL}")   # NEW: shows the model name (needed for the Gemma 4 track)
 
 col1, col2 = st.columns(2)
