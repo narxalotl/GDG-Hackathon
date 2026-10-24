@@ -17,6 +17,7 @@ Quick tests from the terminal:
     python pipeline.py before.jpg after.jpg        # compare one pair
     python pipeline.py before.jpg after.jpg --raw  # also print the raw model text
     python pipeline.py before.jpg after.jpg --no-cache
+    python pipeline.py before.jpg after.jpg --sensitivity=5   # 1 (low) to 5 (high), default 3
 
 Environment (.env file, never committed):
     GEMINI_API_KEY=your_key_here
@@ -60,6 +61,15 @@ category (damage, stain, missing_item, cleanliness, other), severity (minor,
 moderate, major), confidence (low, medium, high). If there are no meaningful
 differences, return [].
 """
+
+# Added to the prompt so the app's "AI Sensitivity" slider (1-5) really changes the model's behavior.
+SENSITIVITY_TEXT = {
+    1: "Sensitivity 1 of 5 (low): report only clear, significant problems. Ignore minor scuffs, small marks, and normal wear and tear.",
+    2: "Sensitivity 2 of 5: report clear problems. Mention minor marks only if they are plainly visible.",
+    3: "Sensitivity 3 of 5 (default): report clear differences, including minor ones you can see plainly.",
+    4: "Sensitivity 4 of 5: also report small marks, scuffs, and light staining when you can see them.",
+    5: "Sensitivity 5 of 5 (high): report even small or subtle differences you can see, marking uncertain ones with low confidence.",
+}
 
 FAKE_RESULT = [{
     "description": "Example: scuff mark on wall",
@@ -186,31 +196,38 @@ def _normalize(items):
 
 
 # --------------------------------------------------------------------------- cache
-def _cache_path(before_path, after_path):
+def _cache_path(before_path, after_path, sensitivity=3):
     h = hashlib.sha256()
     for p in (before_path, after_path):
         h.update(Path(p).read_bytes())
-    h.update(f"{MODEL}|{PROMPT_VERSION}".encode())
+    h.update(f"{MODEL}|{PROMPT_VERSION}|{sensitivity}".encode())
     return CACHE_DIR / f"{h.hexdigest()[:24]}.json"
 
 
 # --------------------------------------------------------------------------- main function
-def compare_photos(before_path, after_path, use_cache=True):
-    """Return a list of possible differences between two photos (see module docstring)."""
+def compare_photos(before_path, after_path, use_cache=True, sensitivity=3):
+    """Return a list of possible differences between two photos (see module docstring).
+    sensitivity: 1 (report only clear, significant problems) to 5 (report subtle ones too)."""
     global LAST_RAW
 
     if os.environ.get("USE_FAKE") == "1":
         return [dict(x) for x in FAKE_RESULT]
 
-    cache_file = _cache_path(before_path, after_path)
+    try:
+        sensitivity = min(5, max(1, int(sensitivity)))
+    except (TypeError, ValueError):
+        sensitivity = 3
+
+    cache_file = _cache_path(before_path, after_path, sensitivity)
     if use_cache and cache_file.exists():
         return json.loads(cache_file.read_text())
 
     before, after = _load_image(before_path), _load_image(after_path)
+    prompt = PROMPT + "\n" + SENSITIVITY_TEXT[sensitivity] + "\nNever report anything you cannot clearly see."
 
     items, last_error = None, None
     for _ in range(2):                                  # one retry if the JSON is bad
-        LAST_RAW = _generate([before, after, PROMPT])
+        LAST_RAW = _generate([before, after, prompt])
         try:
             items = _normalize(_extract_json(LAST_RAW))
             break
@@ -235,7 +252,11 @@ if __name__ == "__main__":
             print("Reply:", _generate(["Reply with the single word OK."]).strip())
         elif len(args) == 2:
             t0 = time.time()
-            result = compare_photos(args[0], args[1], use_cache="--no-cache" not in flags)
+            sens = 3
+            for fl in flags:
+                if fl.startswith("--sensitivity="):
+                    sens = fl.split("=", 1)[1]
+            result = compare_photos(args[0], args[1], use_cache="--no-cache" not in flags, sensitivity=sens)
             print(json.dumps(result, indent=2))
             print(f"\n{len(result)} possible difference(s) in {time.time() - t0:.1f}s using {MODEL}")
             if "--raw" in flags:
