@@ -46,13 +46,13 @@ def build_report(room_name: str, confirmed_items: list[dict], before_path: str, 
         parent=styles['Heading1'],
         fontSize=18,
         spaceAfter=6,
-        textColor=colors.HexColor('#1a365d')
+        textColor=colors.HexColor("#3ec58d")
     )
     subtitle_style = ParagraphStyle(
         'SubtitleStyle',
         parent=styles['Normal'],
         fontSize=10,
-        textColor=colors.HexColor('#4a5568'),
+        textColor=colors.HexColor("#26aca5"),
         spaceAfter=12
     )
     heading_style = ParagraphStyle(
@@ -61,20 +61,20 @@ def build_report(room_name: str, confirmed_items: list[dict], before_path: str, 
         fontSize=13,
         spaceBefore=12,
         spaceAfter=6,
-        textColor=colors.HexColor('#2b6cb0')
+        textColor=colors.HexColor("#b48623")
     )
     body_style = ParagraphStyle(
         'BodyStyle',
         parent=styles['Normal'],
         fontSize=10,
         spaceAfter=6,
-        textColor=colors.HexColor('#2d3748')
+        textColor=colors.HexColor("#874fc7")
     )
     disclaimer_style = ParagraphStyle(
         'DisclaimerStyle',
         parent=styles['Normal'],
         fontSize=9,
-        textColor=colors.HexColor('#c53030'),
+        textColor=colors.HexColor("#812c2c"),
         spaceBefore=4,
         spaceAfter=8
     )
@@ -99,7 +99,7 @@ def build_report(room_name: str, confirmed_items: list[dict], before_path: str, 
     ]
     meta_table = Table(meta_data, colWidths=[100, 110, 330])
     meta_table.setStyle(TableStyle([
-        ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#edf2f7')),
+        ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#114208")),
         ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#cbd5e0')),
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
         ('PADDING', (0,0), (-1,-1), 5),
@@ -133,7 +133,7 @@ def build_report(room_name: str, confirmed_items: list[dict], before_path: str, 
             ])
         item_table = Table(item_data, colWidths=[90, 120, 330])
         item_table.setStyle(TableStyle([
-            ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#edf2f7')),
+            ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#0a2138")),
             ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#cbd5e0')),
             ('VALIGN', (0,0), (-1,-1), 'TOP'),
             ('PADDING', (0,0), (-1,-1), 5),
