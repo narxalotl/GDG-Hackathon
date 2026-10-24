@@ -55,7 +55,7 @@ def build_report(room_name, inspection_date, confirmed_items, before_path, after
     
     story = []
     
-    # Google Brand 4-Color Top Accent Bar
+    # Google Brand 4-Color Top Accent Bar (Blue, Red, Google Yellow, Green)
     accent_table = Table([['', '', '', '']], colWidths=[130, 130, 130, 130], rowHeights=[4])
     accent_table.setStyle(TableStyle([
         ('BACKGROUND', (0,0), (0,0), colors.HexColor('#4285F4')),
@@ -71,7 +71,7 @@ def build_report(room_name, inspection_date, confirmed_items, before_path, after
     story.append(Spacer(1, 4))
     story.append(Paragraph(f"<b>Inspection Area:</b> {room_name}", subtitle_style))
     
-    # Clean 12-Hour Timestamp using the exact selected sidebar inspection date
+    # Clean 12-Hour Timestamp using selected inspection date
     date_formatted = inspection_date.strftime("%m/%d/%Y") if hasattr(inspection_date, 'strftime') else str(inspection_date)
     time_formatted = datetime.now().strftime("%I:%M %p")
     timestamp_str = f"{date_formatted}, {time_formatted}"
@@ -80,7 +80,7 @@ def build_report(room_name, inspection_date, confirmed_items, before_path, after
     
     story.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor('#dadce0'), spaceAfter=15))
     
-    # Visual Comparison of Images Section (Google Yellow Outlined Box)
+    # Visual Comparison of Images Section with Google Yellow Box
     story.append(Paragraph("Visual Comparison of Images", heading_style))
     story.append(Spacer(1, 8))
     
