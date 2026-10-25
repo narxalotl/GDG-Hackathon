@@ -7,10 +7,10 @@ import submissions
 from datetime import date
 import streamlit as st
 from dotenv import load_dotenv
-
-load_dotenv()
 import report
 from pipeline import compare_photos, PipelineError, MODEL, have_server_key
+
+load_dotenv()
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 DEMO_JSON = os.path.join(BASE, "demo", "demo.json")
@@ -88,20 +88,9 @@ st.markdown("""
 <div class="google-bar"></div>
 """, unsafe_allow_html=True)
 
-# Top Navigation Bar with Portal Role Selector
-nav_col1, nav_col2, nav_col3 = st.columns([3, 4, 2])
-with nav_col1:
-    st.markdown("### 🏡 Move-In/Move-Out Evidence Tool")
-    st.markdown("<p style='color: #8b949e; font-size: 0.85rem; margin-top: -15px;'>GDG Build with AI x Hacktoberfest 2026</p>", unsafe_allow_html=True)
-
-with nav_col3:
-    user_role = st.selectbox(
-        "Portal Access", 
-        ["Renter (Tenant)", "Landlord / Leasing Office"],
-        label_visibility="collapsed"
-    )
-    st.markdown(f"<p style='text-align: right; font-size: 0.75rem; color: #8b949e; margin-top: -5px;'>Active Portal: <span style='color: #4285F4; font-weight: bold;'>{user_role}</span></p>", unsafe_allow_html=True)
-
+# App Header Title (Clean & Minimal)
+st.markdown("### 🏡 Move-In/Move-Out Evidence Tool")
+st.markdown("<p style='color: #8b949e; font-size: 0.85rem; margin-top: -15px;'>GDG Build with AI x Hacktoberfest 2026</p>", unsafe_allow_html=True)
 st.markdown("<div style='margin-top: 10px;'></div>", unsafe_allow_html=True)
 
 # App Header Card
@@ -134,11 +123,20 @@ if "workdir" not in st.session_state:
     st.session_state["workdir"] = tempfile.mkdtemp(prefix="evidence_")
 WORKDIR = st.session_state["workdir"]
 
-# --- SIDEBAR: SETTINGS ---
-st.sidebar.header("Inspection Settings")
+# --- SIDEBAR: MODERN SAAS NAVIGATION & SETTINGS ---
+st.sidebar.markdown("### 🧭 Portal Navigation")
+user_role = st.sidebar.radio(
+    "Select Portal",
+    ["Renters", "Leasing Office"],
+    label_visibility="collapsed"
+)
 
-st.sidebar.markdown(f"**Active Role:** {user_role}")
 st.sidebar.markdown("---")
+st.sidebar.markdown(f"**Active Portal:** <span style='color: #4285F4; font-weight: bold;'>{user_role}</span>", unsafe_allow_html=True)
+st.sidebar.markdown(f"**System Status:** <span style='color: #34a853; font-weight: bold;'>● Online</span>", unsafe_allow_html=True)
+st.sidebar.markdown("---")
+
+st.sidebar.header("Inspection Settings")
 
 inspection_date = st.sidebar.date_input(
     "Inspection Date (you enter this)", value=date.today(),
@@ -195,31 +193,43 @@ if st.sidebar.button("🔄 Reset Session"):
     st.rerun()
 
 # --- CHECK WHO IS LOGGED IN ---
-if user_role == "Landlord / Leasing Office":
-    # LANDLORD DASHBOARD VIEW
+if user_role == "Leasing Office":
+    # LEASING OFFICE DASHBOARD VIEW
     st.markdown('<div class="web-card">', unsafe_allow_html=True)
     st.subheader("🏢 Leasing Office Inspection Dashboard")
-    st.write("Review all incoming tenant inspection submissions and evidence records.")
+    st.write("Review incoming tenant inspection submissions and evidence records.")
 
+    # Load submissions using the built-in submissions module
+    all_subs = submissions.get_all_submissions() if hasattr(submissions, "get_all_submissions") else []
 
-    if not reports:
+    if not all_subs:
         st.info("No tenant inspection reports have been submitted yet.")
     else:
         table_data = []
-        for r in reports:
+        for s in all_subs:
             table_data.append({
-                "Tenant Name": r[0],
-                "Unit / Apt": r[1],
-                "Room / Area": r[2],
-                "Jurisdiction": r[3],
-                "Submitted At": r[4],
+                "Tenant Name": s.get("name", "N/A"),
+                "Unit / Apt": s.get("unit", "N/A"),
+                "Room / Area": s.get("room", "N/A"),
+                "Jurisdiction": s.get("jurisdiction", "N/A"),
             })
         st.dataframe(table_data, use_container_width=True)
     
     st.markdown('</div>', unsafe_allow_html=True)
 
 else:
-    # --- RENTER (TENANT) VIEW ---
+    # --- RENTERS (TENANT) VIEW ---
+    
+    # SaaS Metrics Header Cards
+    m1, m2, m3 = st.columns(3)
+    with m1:
+        st.markdown(f'<div class="web-card" style="text-align: center; padding: 15px;"><p style="color: #8b949e; font-size: 0.8rem; margin:0;">ACTIVE JURISDICTION</p><h4 style="color: #4285F4; margin:5px 0 0 0;">{dmv_jurisdiction.split()[0]}</h4></div>', unsafe_allow_html=True)
+    with m2:
+        st.markdown(f'<div class="web-card" style="text-align: center; padding: 15px;"><p style="color: #8b949e; font-size: 0.8rem; margin:0;">SELECTED ROOM</p><h4 style="color: #34a853; margin:5px 0 0 0;">{room_name}</h4></div>', unsafe_allow_html=True)
+    with m3:
+        st.markdown(f'<div class="web-card" style="text-align: center; padding: 15px;"><p style="color: #8b949e; font-size: 0.8rem; margin:0;">AI ENGINE</p><h4 style="color: #FBBC05; margin:5px 0 0 0;">Gemma 2.5</h4></div>', unsafe_allow_html=True)
+
+    # Main Upload Section
     st.markdown('<div class="web-card">', unsafe_allow_html=True)
     st.subheader("📸 Upload Audit Photos")
     col1, col2 = st.columns(2)
