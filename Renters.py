@@ -220,26 +220,34 @@ else:
         "⚠️ **Note:** You can add a maximum of **5 pairs of issues** (Move-In + Move-Out pairs, 10 pictures total max)."
     )
 
-    if "num_issue_pairs" not in st.session_state:
-        st.session_state.num_issue_pairs = 1
+    # 1. Initialize issue counter
+if "num_issue_pairs" not in st.session_state:
+    st.session_state.num_issue_pairs = 1
 
-    batched_uploaded_files = []
+batched_uploaded_files = []
 
-    for i in range(st.session_state.num_issue_pairs):
-        if st.session_state.num_issue_pairs > 1:
-            st.markdown(f"**Issue Pair {i + 1} of {st.session_state.num_issue_pairs}**")
-        
-        col1, col2 = st.columns(2)
-        with col1:
-            b_file = st.file_uploader(f"Upload Move-In (Before) Photo #{i + 1}", type=["jpg", "jpeg", "png"], key=f"unique_before_key_{i}")
-        with col2:
-            a_file = st.file_uploader(f"Upload Move-Out (After) Photo #{i + 1}", type=["jpg", "jpeg", "png"], key=f"unique_after_key_{i}")
-        
-        if b_file and a_file:
-            batched_uploaded_files.append({"index": i, "before": b_file, "after": a_file})
-        
-        if i < st.session_state.num_issue_pairs - 1:
-            st.markdown("---")
+# 2. Loop through each issue section
+for i in range(st.session_state.num_issue_pairs):
+    if st.session_state.num_issue_pairs > 1:
+        st.markdown(f"**Issue Pair {i + 1} of {st.session_state.num_issue_pairs}**")
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        b_file = st.file_uploader(f"Upload Move-In (Before) Photo #{i + 1}", type=["jpg", "jpeg", "png"], key=f"unique_before_key_{i}")
+    with col2:
+        a_file = st.file_uploader(f"Upload Move-Out (After) Photo #{i + 1}", type=["jpg", "jpeg", "png"], key=f"unique_after_key_{i}")
+    
+    # CHANGED: Now uses 'or' instead of 'and', so users can upload JUST move-in OR JUST move-out (or both)
+    if b_file or a_file:
+        batched_uploaded_files.append({"index": i, "before": b_file, "after": a_file})
+    
+    if i < st.session_state.num_issue_pairs - 1:
+        st.markdown("---")
+
+# 3. Button to add another issue block (this increments the counter and reruns)
+if st.button("➕ Add another issue"):
+    st.session_state.num_issue_pairs += 1
+    st.rerun()
 
     if st.session_state.num_issue_pairs < 5:
         if st.button("➕ Add another issue", key="unique_global_add_issue_btn"):
