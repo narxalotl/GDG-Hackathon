@@ -15,7 +15,7 @@ from reportlab.platypus import (
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 
-# Where the verified Virginia rules text lives
+# Where the verified Virginia rules text lives (kept as backup)
 RULES_PATHS = [
     os.path.join("data", "va_deposit_rules.txt"),
     os.path.join("data", "data", "va_deposit_rules.txt"),
@@ -91,8 +91,11 @@ def view_color(view: str) -> str:
         return "#c5221f"  # red
     return "#5f6368"      # gray
 
-def build_letter(room_name: str, items: list, photo_dates=None, statute_name="Virginia Residential Landlord and Tenant Act") -> str:
-    """Draft letter text built from what the TENANT chose for each item."""
+def build_letter(room_name: str, items: list, photo_dates=None, law_info=None) -> str:
+    """Draft letter text built from what the TENANT chose, dynamically using active law info."""
+    if law_info is None:
+        law_info = {"statute": "Virginia Code § 55.1-1226 (VRLTA)"}
+        
     dates_sentence = ""
     if photo_dates and NOT_FOUND not in photo_dates:
         dates_sentence = (f" According to the photo files' metadata, the move-in photo was taken on "
@@ -121,6 +124,7 @@ def build_letter(room_name: str, items: list, photo_dates=None, statute_name="Vi
                    "No differences were recorded.")
                    
     ask = " I ask that no deductions be made for normal wear and tear." if counts[VIEW_NORMAL] else ""
+    statute_name = law_info.get('statute', 'Virginia Code § 55.1-1226 (VRLTA)')
     
     return (
         "Dear Property Management / Landlord,<br/><br/>"
@@ -143,7 +147,7 @@ def build_report(room_name, confirmed_items, dmv_jurisdiction,
     """Write a PDF evidence report and return the file path."""
     is_tenant = inspector_role is None or any(w in inspector_role.lower() for w in ("tenant", "renter"))
     
-    # CRASH-PROOF LAW INFO FETCHING
+    # Safely fetch dynamic jurisdiction law info
     try:
         law_info = dmv_laws.get_law_details(dmv_jurisdiction)
     except Exception:
@@ -321,7 +325,7 @@ def build_report(room_name, confirmed_items, dmv_jurisdiction,
     if is_tenant:
         story.append(Paragraph("Draft Security Deposit Letter (edit before sending)", heading_style))
         story.append(Spacer(1, 8))
-        letter_content = build_letter(room_name, confirmed_items or [], (before_taken, after_taken), law_info.get('statute', 'Virginia Law'))
+        letter_content = build_letter(room_name, confirmed_items or [], (before_taken, after_taken), law_info)
         letter_table = Table([[Paragraph(letter_content, body_style)]], colWidths=[510])
         letter_table.setStyle(TableStyle([
             ('BACKGROUND', (0,0), (-1,-1), colors.HexColor('#f8f9fa')),
@@ -334,7 +338,7 @@ def build_report(room_name, confirmed_items, dmv_jurisdiction,
         story.append(letter_table)
         story.append(Spacer(1, 14))
         
-    # Regional Rules Reference
+    # Regional Rules Reference (Fully dynamic based on selected jurisdiction)
     story.append(Paragraph(f"{esc(law_info.get('jurisdiction', 'Regional'))} Statutory Rules Reference", heading_style))
     story.append(Spacer(1, 6))
     story.append(Paragraph(
