@@ -254,7 +254,7 @@ else:
         st.markdown(f'<div class="web-card" style="text-align: center; padding: 15px;"><p style="color: #8b949e; font-size: 0.8rem; margin:0;">AI ENGINE</p><h4 style="color: #FBBC05; margin:5px 0 0 0;">{MODEL}</h4></div>', unsafe_allow_html=True)
     # Main Upload Section
     # --- MULTI-ISSUE UPLOAD SECTION (MAX 5 PAIRS) ---
-# --- MULTI-ISSUE UPLOAD SECTION (MAX 5 PAIRS) ---
+# --- 1. MULTI-ISSUE UPLOAD SECTION (MAX 5 PAIRS) ---
 st.markdown('<div class="web-card">', unsafe_allow_html=True)
 st.subheader("📸 Upload Audit Photos")
 st.info(
@@ -287,17 +287,52 @@ for i in range(st.session_state.num_issue_pairs):
     if i < st.session_state.num_issue_pairs - 1:
         st.markdown("---")
 
-    # Button to add another issue pair (capped at 5)
+# Button to add another issue pair (capped at 5) - OUTSIDE the loop
 if st.session_state.num_issue_pairs < 5:
     if st.button("➕ Add another issue", key="unique_global_add_issue_btn"):
-            st.session_state.num_issue_pairs += 1
-            st.rerun()
+        st.session_state.num_issue_pairs += 1
+        st.rerun()
 else:
     st.caption("🔒 Maximum limit of 5 issue pairs (10 photos total) reached.")
 
 st.markdown('</div>', unsafe_allow_html=True)
 
 
+# --- 2. FILE PROCESSOR & ANALYSIS TRIGGER ---
+mode, before_path, after_path, signature, demo_items = None, None, None, None, None
+
+if batched_uploaded_files:
+    mode = "upload"
+    st.session_state.pop("use_demo", None)
+    
+    # Grab the first pair to run the live visual comparison & analysis
+    active_pair = batched_uploaded_files[0]
+    b_file = active_pair["before"]
+    a_file = active_pair["after"]
+    
+    before_ext = os.path.splitext(b_file.name)[1] or ".jpg"
+    after_ext = os.path.splitext(a_file.name)[1] or ".jpg"
+    before_path = os.path.join(WORKDIR, "before" + before_ext)
+    after_path = os.path.join(WORKDIR, "after" + after_ext)
+    
+    with open(before_path, "wb") as f:
+        f.write(b_file.getbuffer())
+    with open(after_path, "wb") as f:
+        f.write(a_file.getbuffer())
+        
+    signature = ("upload", b_file.name, b_file.size, a_file.name, a_file.size)
+elif st.session_state.get("use_demo") and demo:
+    mode = "demo"
+    before_path, after_path, demo_items = demo
+    signature = ("demo",)
+elif demo:
+    st.markdown('<div class="web-card">', unsafe_allow_html=True)
+    st.write("No photos handy, or no API key? Try the saved example. It needs no key and makes no AI call.")
+    if st.button("Load the saved example", key="load_demo_btn_unique"):
+        st.session_state["use_demo"] = True
+        st.rerun()
+    st.markdown('</div>', unsafe_allow_html=True)
+    
 TENANT_VIEWS = [
         "Not sure yet",
         "Normal wear and tear",
