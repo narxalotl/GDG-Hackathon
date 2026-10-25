@@ -10,17 +10,13 @@ from dotenv import load_dotenv
 import report
 from pipeline import compare_photos, PipelineError, MODEL, have_server_key
 
-
 load_dotenv()
-
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 DEMO_JSON = os.path.join(BASE, "demo", "demo.json")
 
-
 # How many live AI analyses one browser session may run on the app's shared key.
 MAX_LIVE_RUNS = int(os.environ.get("MAX_LIVE_RUNS", "8"))
-
 
 # Page Configuration & Clean Theme
 st.set_page_config(
@@ -29,7 +25,6 @@ st.set_page_config(
     page_icon="🏡"
 )
 
-
 # Secrets check
 try:
     if not os.environ.get("GEMINI_API_KEY") and "GEMINI_API_KEY" in st.secrets:
@@ -37,9 +32,6 @@ try:
 except Exception:
     pass
 
-
-# Modern SaaS CSS styling with Google top bar and cards
-# Modern SaaS CSS styling with Google top bar and cards
 # Modern SaaS CSS styling with Google top bar and cards
 st.markdown("""
 <style>
@@ -96,19 +88,24 @@ st.markdown("""
 <div class="google-bar"></div>
 """, unsafe_allow_html=True)
 
+# App Header Title (Clean & Minimal)
+st.markdown("### 🏡 Move-In/Move-Out Evidence Tool")
+st.markdown("<p style='color: #8b949e; font-size: 0.85rem; margin-top: -15px;'>GDG Build with AI x Hacktoberfest 2026</p>", unsafe_allow_html=True)
+st.markdown("<div style='margin-top: 10px;'></div>", unsafe_allow_html=True)
 
-# Single, Clean Header Card with House Emoji
+st.markdown("### 🏡 Move-In/Move-Out Evidence Tool")
+st.markdown("<p style='color: #8b949e; font-size: 0.85rem; margin-top: -15px;'>GDG Build with AI x Hacktoberfest 2026</p>", unsafe_allow_html=True)
+st.markdown("<div style='margin-top: 10px;'></div>", unsafe_allow_html=True)
+
+# Info Card (No duplicate title inside)
 with st.container():
     st.markdown('<div class="web-card">', unsafe_allow_html=True)
-    st.title("🏡 Move-In/Move-Out Evidence Tool")
-    st.markdown("GDG Build with AI x Hacktoberfest 2026")
     st.info(
         "Your photos are sent to Google's Gemini API for analysis. The AI only suggests "
         "**possible** differences. You decide which ones are real and how to describe them.\n\n"
         "This tool helps you document conditions. It is not legal advice."
     )
     st.markdown('</div>', unsafe_allow_html=True)
-
 
 def load_demo():
     try:
@@ -122,14 +119,11 @@ def load_demo():
         pass
     return None
 
-
 demo = load_demo()
-
 
 if "workdir" not in st.session_state:
     st.session_state["workdir"] = tempfile.mkdtemp(prefix="evidence_")
 WORKDIR = st.session_state["workdir"]
-
 
 # --- SIDEBAR: MODERN SAAS NAVIGATION & SETTINGS ---
 st.sidebar.markdown("### 🧭 Portal Navigation")
@@ -139,21 +133,17 @@ user_role = st.sidebar.radio(
     label_visibility="collapsed"
 )
 
-
 st.sidebar.markdown("---")
 st.sidebar.markdown(f"**Active Portal:** <span style='color: #4285F4; font-weight: bold;'>{user_role}</span>", unsafe_allow_html=True)
 st.sidebar.markdown(f"**System Status:** <span style='color: #34a853; font-weight: bold;'>● Online</span>", unsafe_allow_html=True)
 st.sidebar.markdown("---")
 
-
 st.sidebar.header("Inspection Settings")
-
 
 inspection_date = st.sidebar.date_input(
     "Inspection Date (you enter this)", value=date.today(),
     help="Shown in the report as a date you entered. The report also shows the date each photo was taken, read from the photo files."
 )
-
 
 dmv_jurisdiction = st.sidebar.selectbox(
     "DMV Jurisdiction",
@@ -164,15 +154,12 @@ dmv_jurisdiction = st.sidebar.selectbox(
     ]
 )
 
-
 ai_sensitivity = st.sidebar.slider(
     "AI Sensitivity Level", min_value=1, max_value=5, value=3,
     help="Higher sensitivity reports smaller scuffs and marks. Lower sensitivity reports only clear problems."
 )
 
-
 st.sidebar.markdown("---")
-
 
 room_option = st.sidebar.selectbox(
     "Select Room / Area",
@@ -183,16 +170,13 @@ if room_option == "Other (Custom)":
 else:
     room_name = room_option
 
-
 st.sidebar.markdown("---")
-
 
 with st.sidebar.expander("AI access (optional)"):
     st.text_input(
         "Your own Gemini API key", type="password", key="user_key",
         help="A free key from Google AI Studio. It is used only to analyze your photos and is kept only for this browser session. This app does not save it."
     )
-
 
 user_key = (st.session_state.get("user_key") or "").strip()
 if user_key:
@@ -202,16 +186,13 @@ elif have_server_key():
 else:
     st.sidebar.caption("AI access: no key set. Load the saved example, or paste your own key above.")
 
-
 st.sidebar.caption(f"AI model: {MODEL}")
-
 
 if st.sidebar.button("🔄 Reset Session"):
     shutil.rmtree(st.session_state.get("workdir", ""), ignore_errors=True)
     for key in list(st.session_state.keys()):
         del st.session_state[key]
     st.rerun()
-
 
 # --- CHECK WHO IS LOGGED IN ---
 if user_role == "Leasing Office":
@@ -220,10 +201,8 @@ if user_role == "Leasing Office":
     st.subheader("🏢 Leasing Office Inspection Dashboard")
     st.write("Review incoming tenant inspection submissions and evidence records.")
 
-
     # Load submissions using the built-in submissions module
     all_subs = submissions.get_all_submissions() if hasattr(submissions, "get_all_submissions") else []
-
 
     if not all_subs:
         st.info("No tenant inspection reports have been submitted yet.")
@@ -237,13 +216,12 @@ if user_role == "Leasing Office":
                 "Jurisdiction": s.get("jurisdiction", "N/A"),
             })
         st.dataframe(table_data, use_container_width=True)
-   
+    
     st.markdown('</div>', unsafe_allow_html=True)
-
 
 else:
     # --- RENTERS (TENANT) VIEW ---
-   
+    
     # SaaS Metrics Header Cards
     m1, m2, m3 = st.columns(3)
     with m1:
@@ -255,18 +233,12 @@ else:
     # Main Upload Section
     st.markdown('<div class="web-card">', unsafe_allow_html=True)
     st.subheader("📸 Upload Audit Photos")
-    st.info(
-        "💡 **Tip for Best AI Accuracy:** Try to take your Move-Out photo from the "
-        "**same angle and lighting** as your Move-In photo. Consistent framing helps "
-        "the AI accurately distinguish real damage from shadows or perspective shifts!"
-    )
     col1, col2 = st.columns(2)
     with col1:
         before_file = st.file_uploader("Upload Before Photo", type=["jpg", "jpeg", "png"], key="before")
     with col2:
         after_file = st.file_uploader("Upload After Photo", type=["jpg", "jpeg", "png"], key="after")
     st.markdown('</div>', unsafe_allow_html=True)
-
 
     TENANT_VIEWS = [
         "Not sure yet",
@@ -275,9 +247,7 @@ else:
         "Damage I accept responsibility for",
     ]
 
-
     mode, before_path, after_path, signature, demo_items = None, None, None, None, None
-
 
     if before_file and after_file:
         mode = "upload"
@@ -303,34 +273,29 @@ else:
             st.rerun()
         st.markdown('</div>', unsafe_allow_html=True)
 
-
     if st.session_state.get("signature") != signature:
         st.session_state["signature"] = signature
         st.session_state.pop("diffs", None)
         st.session_state.pop("pdf_bytes", None)
 
-
     if mode == "demo":
         st.session_state["diffs"] = demo_items
         st.session_state["run_id"] = st.session_state.get("run_id", 0) + 1
-
 
     if before_path and after_path and os.path.exists(before_path) and os.path.exists(after_path):
         st.markdown('<div class="web-card">', unsafe_allow_html=True)
         st.subheader("🔍 Visual Comparison")
         st.image([before_path, after_path], caption=["Move-In", "Move-Out"], width=300)
 
-
         taken_before = report.get_image_timestamp(before_path)
         taken_after = report.get_image_timestamp(after_path)
         st.caption(f"Dates found in the photo files: Move-in ({taken_before}) | Move-out ({taken_after})")
-       
+        
         if report.NOT_FOUND in (taken_before, taken_after):
             st.warning(
                 "At least one photo has no date stored in its file (some apps and editors remove it). "
                 "The report will say the date was not found. Use the original photo files if you have them."
             )
-
 
         if mode == "demo":
             st.info("You are looking at a saved example result. No AI call was made. Upload your own photos to run the AI.")
@@ -371,7 +336,6 @@ else:
                             )
         st.markdown('</div>', unsafe_allow_html=True)
 
-
     diffs = st.session_state.get("diffs")
     if diffs is not None:
         st.markdown('<div class="web-card">', unsafe_allow_html=True)
@@ -387,9 +351,9 @@ else:
                 st.markdown(f"**Item {idx+1}: {item.get('category', 'other').capitalize()}** in {room_name} ({item.get('location', '')})")
                 st.write(f"AI finding: {item.get('description', '')}")
                 st.caption(f"Severity: {item.get('severity', 'unknown')} | AI confidence: {item.get('confidence', 'unknown')}")
-               
+                
                 include = st.checkbox("This difference is real. Include it in the report.", key=f"include_{k}")
-               
+                
                 view = st.selectbox("Your view of this item", TENANT_VIEWS, key=f"view_{k}")
                 if view in ("Normal wear and tear", "Already there at move-in"):
                     st.markdown(f'<span class="pill-normal">{view}</span>', unsafe_allow_html=True)
@@ -397,7 +361,7 @@ else:
                     st.markdown(f'<span class="pill-neutral">{view}</span>', unsafe_allow_html=True)
                 else:
                     st.markdown(f'<span class="pill-damage">{view}</span>', unsafe_allow_html=True)
-               
+                
                 st.markdown("")
                 tenant_note = st.text_input(
                     f"Add your note or context for item {idx + 1} (optional):",
@@ -411,7 +375,6 @@ else:
                         tenant_view="" if view == "Not sure yet" else view,
                         tenant_note=tenant_note,
                     ))
-
 
             if confirmed_items:
                 with st.expander("Share these findings with the leasing office (optional)"):
@@ -433,12 +396,11 @@ else:
                             )
                             st.success("Sent. The leasing office can now see this room's photos and confirmed items.")
 
-
             if st.button("Generate Official PDF Report & Dispute Letter", type="primary", use_container_width=True):
                 output_pdf = "evidence_report.pdf"
                 current_date = inspection_date if 'inspection_date' in locals() else date.today()
                 items_to_report = confirmed_items if 'confirmed_items' in locals() else []
-               
+                
                 report.build_report(
                     room_name=room_name,
                     inspection_date=current_date,
@@ -449,7 +411,7 @@ else:
                     output_path=output_pdf,
                     inspector_role=user_role
                 )
-               
+                
                 with open(output_pdf, "rb") as pdf_file:
                     st.download_button(
                         label="📥 Download Signed Evidence Report (PDF)",
