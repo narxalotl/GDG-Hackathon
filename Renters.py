@@ -227,8 +227,7 @@ else:
     with m2:
         st.markdown(f'<div class="web-card" style="text-align: center; padding: 15px;"><p style="color: #8b949e; font-size: 0.8rem; margin:0;">SELECTED ROOM</p><h4 style="color: #34a853; margin:5px 0 0 0;">{room_name}</h4></div>', unsafe_allow_html=True)
     with m3:
-        st.markdown(f'<div class="web-card" style="text-align: center; padding: 15px;"><p style="color: #8b949e; font-size: 0.8rem; margin:0;">AI ENGINE</p><h4 style="color: #FBBC05; margin:5px 0 0 0;">Gemma 2.5</h4></div>', unsafe_allow_html=True)
-
+        st.markdown(f'<div class="web-card" style="text-align: center; padding: 15px;"><p style="color: #8b949e; font-size: 0.8rem; margin:0;">AI ENGINE</p><h4 style="color: #FBBC05; margin:5px 0 0 0;">{MODEL}</h4></div>', unsafe_allow_html=True)
     # Main Upload Section
     st.markdown('<div class="web-card">', unsafe_allow_html=True)
     st.subheader("📸 Upload Audit Photos")
