@@ -4,7 +4,7 @@
 
 > Documentation, not legal advice. The AI suggests, the human decides.
 
-**Try it live: https://renter-evidence-tool.streamlit.app/**
+**Try it live: https://lease-no-trace.streamlit.app/**
 No account and no API key needed.
 
 ## For judges: how to try it in 2 minutes
