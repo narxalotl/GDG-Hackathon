@@ -1,3 +1,4 @@
+import hmac
 import json
 import os
 import shutil
@@ -13,7 +14,7 @@ load_dotenv()
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 DEMO_JSON = os.path.join(BASE, "demo", "demo.json")
-MAX_LIVE_RUNS = int(os.environ.get("MAX LIVE RUNS", "8"))
+MAX_LIVE_RUNS = int(os.environ.get("MAX_LIVE_RUNS", "10"))
 
 st.set_page_config(
     page_title="Move-In/Move-Out Evidence Tool",
@@ -106,7 +107,32 @@ def load_demo():
         pass
     return None, None, None
 
-demo = load_demo()
+demo_before, demo_after, demo_items = load_demo()
+demo_ok = bool(demo_before and demo_after and demo_items is not None)
+fake_mode = os.environ.get("USE_FAKE") == "1"   # test mode: pipeline.py returns example data, no key needed
+
+
+class DemoFile:
+    """Stands in for an uploaded file, so the saved example uses the same code as real uploads."""
+    def __init__(self, path):
+        self.name = os.path.basename(path)
+        self._path = path
+
+    def getbuffer(self):
+        with open(self._path, "rb") as f:
+            return f.read()
+
+
+def get_office_password():
+    """The leasing office password comes from LEASING_PASSWORD (.env or hosting secrets). Never hard-code it."""
+    pw = os.environ.get("LEASING_PASSWORD")
+    if not pw:
+        try:
+            pw = st.secrets["LEASING_PASSWORD"]
+        except Exception:
+            pw = None
+    return str(pw) if pw else None
+
 
 if "workdir" not in st.session_state:
     st.session_state["workdir"] = tempfile.mkdtemp(prefix="evidence")
@@ -129,7 +155,10 @@ st.sidebar.markdown("---")
 with st.sidebar.expander("🔐 Leasing Office Login"):
     lo_password = st.text_input("Password", type="password", key="leasing_password_input")
     if st.button("Unlock Dashboard", key="unlock_lo_btn"):
-        if lo_password == "admin123" or lo_password == "leasing123":
+        office_pw = get_office_password()
+        if not office_pw:
+            st.error("The leasing office view is locked because no LEASING_PASSWORD is set.")
+        elif hmac.compare_digest(lo_password.encode(), office_pw.encode()):
             st.session_state["leasing_logged_in"] = True
             st.success("Unlocked!")
             st.rerun()
@@ -190,9 +219,9 @@ else:
     dmv_jurisdiction = st.sidebar.selectbox(
         "DMV Jurisdiction",
         [
+            "Virginia (VRLTA)",
             "Maryland Security Deposit Law",
-            "District of Columbia (DC Tenant Bill of Rights)",
-            "Virginia (VRLTA)"
+            "District of Columbia (DC Tenant Bill of Rights)"
         ]
     )
     ai_sensitivity = st.sidebar.slider(
@@ -217,12 +246,14 @@ else:
             help="A free key from Google AI Studio."
         )
         user_key = (user_key or "").strip()
-        if user_key:
+        if fake_mode:
+            st.sidebar.caption("AI access: TEST MODE (fake example data, no AI call)")
+        elif user_key:
             st.sidebar.caption("AI access: your own key")
         elif have_server_key():
             st.sidebar.caption(f"AI access: the app's shared key ({MAX_LIVE_RUNS} analyses per session)")
         else:
-            st.sidebar.caption("AI access: no key set.")
+            st.sidebar.caption("AI access: no key set. Load the saved example, or paste your own key above.")
     
     st.sidebar.caption(f"AI model: {MODEL}")
 
@@ -282,13 +313,31 @@ else:
 
     st.markdown('</div>', unsafe_allow_html=True)
 
+    # The saved example behaves like one uploaded pair (no key, no AI call)
+    if batched_uploaded_files:
+        # real photos were uploaded: leave the saved example
+        if st.session_state.pop("demo_loaded", None):
+            st.session_state["diffs_dict"] = {}
+        st.session_state.pop("use_demo", None)
+    elif st.session_state.get("use_demo") and demo_ok:
+        batched_uploaded_files = [{"index": 0, "before": DemoFile(demo_before), "after": DemoFile(demo_after)}]
+        if not st.session_state.get("demo_loaded"):
+            st.session_state["diffs_dict"] = {0: demo_items}
+            st.session_state["demo_loaded"] = True
+        st.info("You are looking at a saved example result. No AI call was made. "
+                "Upload your own photos to run the AI.")
+        if st.button("Close the saved example", key="close_demo_btn"):
+            for k in ("use_demo", "demo_loaded", "diffs_dict", "pair_sigs", "pair_ver", "pdf_bytes"):
+                st.session_state.pop(k, None)
+            st.rerun()
+
     # Process all uploaded issue pairs independently
     if batched_uploaded_files:
-        st.session_state.pop("use_demo", None)
-        
         if "diffs_dict" not in st.session_state:
             st.session_state["diffs_dict"] = {}
-        
+        pair_sigs = st.session_state.setdefault("pair_sigs", {})
+        pair_ver = st.session_state.setdefault("pair_ver", {})
+        pair_paths = {}
         all_confirmed_items = []
 
         for item in batched_uploaded_files:
@@ -307,6 +356,16 @@ else:
 
             before_path = os.path.join(WORKDIR, f"before_{i}" + before_ext)
             after_path = os.path.join(WORKDIR, f"after_{i}" + after_ext)
+            pair_paths[i] = (before_path, after_path)
+
+            # New photos in this slot: forget the old analysis so it can't be shown for the wrong photos
+            sig = (getattr(b_file, "name", None), getattr(b_file, "size", None),
+                   getattr(a_file, "name", None), getattr(a_file, "size", None))
+            if i in pair_sigs and pair_sigs[i] != sig:
+                st.session_state["diffs_dict"].pop(i, None)
+                pair_ver[i] = pair_ver.get(i, 0) + 1
+                st.session_state.pop("pdf_bytes", None)
+            pair_sigs[i] = sig
 
             if b_file:
                 with open(before_path, "wb") as f:
@@ -333,12 +392,16 @@ else:
                 st.caption(f"Dates found in photo files: Move-in ({taken_before}) | Move-Out ({taken_after})")
 
             if st.button(f"🔍 Run Analysis for Issue #{i + 1}", type="primary", key=f"run_analysis_btn_{i}"):
-                if not user_key and not have_server_key():
-                    st.warning("No AI key is available here. Paste your own free Gemini API key in the sidebar.")
-                elif not user_key and st.session_state.get("live_runs", 0) >= MAX_LIVE_RUNS:
-                    st.warning(f"This session has used its {MAX_LIVE_RUNS} shared analyses.")
+                if not (b_file and a_file):
+                    st.warning("Please upload both the move-in and the move-out photo first.")
+                elif not (fake_mode or user_key or have_server_key()):
+                    st.warning("No AI key is available here. Paste your own free Gemini API key in the sidebar "
+                               "(under AI access), or load the saved example.")
+                elif not (fake_mode or user_key) and st.session_state.get("live_runs", 0) >= MAX_LIVE_RUNS:
+                    st.warning(f"This session has used its {MAX_LIVE_RUNS} analyses on the app's shared key. "
+                               "Paste your own free Gemini API key in the sidebar to keep going.")
                 else:
-                    with st.spinner(f"Analyzing Issue #{i + 1} with {MODEL}..."):
+                    with st.spinner(f"Analyzing Issue #{i + 1} with {MODEL}... this can take up to a minute."):
                         try:
                             diffs = compare_photos(
                                 before_path, after_path,
@@ -346,11 +409,15 @@ else:
                                 api_key=user_key or None
                             )
                             st.session_state["diffs_dict"][i] = diffs
-                            if not user_key:
+                            pair_ver[i] = pair_ver.get(i, 0) + 1
+                            st.session_state.pop("pdf_bytes", None)
+                            if not (fake_mode or user_key):
                                 st.session_state["live_runs"] = st.session_state.get("live_runs", 0) + 1
                             st.success(f"Analysis complete for Issue #{i + 1}!")
                         except PipelineError as e:
                             st.error(str(e))
+                            st.caption("If the AI is busy or out of quota, you can paste your own free Gemini API "
+                                       "key in the sidebar, or load the saved example.")
 
             diffs = st.session_state["diffs_dict"].get(i)
             if diffs is not None:
@@ -366,7 +433,7 @@ else:
                         "Damage I accept responsibility for"
                     ]
                     for idx, diff_item in enumerate(diffs):
-                        k = f"issue_{i}_{idx}"
+                        k = f"issue_{i}_{pair_ver.get(i, 0)}_{idx}"
                         st.markdown(f"**Item {idx + 1}: {diff_item.get('category', 'other').capitalize()}** in {room_name} ({diff_item.get('location', '')})")
                         st.write(f"AI finding: {diff_item.get('description', '')}")
                         st.caption(f"Severity: {diff_item.get('severity', 'unknown')} | Confidence: {diff_item.get('confidence', 'unknown')}")
@@ -397,6 +464,9 @@ else:
                             ))
             st.markdown('</div>', unsafe_allow_html=True)
 
+        complete = [it["index"] for it in batched_uploaded_files if it["before"] and it["after"]]
+        first_paths = pair_paths[complete[0]] if complete else None
+
         # Global actions for all processed issue pairs
         if all_confirmed_items:
             st.markdown('<div class="web-card">', unsafe_allow_html=True)
@@ -414,49 +484,56 @@ else:
                         st.warning("Please enter your name and unit.")
                     elif not share_ok:
                         st.warning("Please check the box to confirm you agree to share.")
+                    elif first_paths is None:
+                        st.warning("Upload at least one complete pair (move-in and move-out photo) first.")
                     else:
-                        first_item = batched_uploaded_files[0]
-                        first_idx = first_item['index']
                         submissions.save_submission(
                             share_name,
                             share_unit,
                             room_name,
                             dmv_jurisdiction,
-                            os.path.join(WORKDIR, f"before_{first_idx}.jpg"),
-                            os.path.join(WORKDIR, f"after_{first_idx}.jpg"),
+                            first_paths[0],
+                            first_paths[1],
                             all_confirmed_items
                         )
                         st.success("Sent successfully to the leasing office!")
 
-            if st.button("Generate Official PDF Report & Dispute Letter", type="primary", use_container_width=True, key="generate_pdf_btn_multi"):
-                output_pdf = "evidence_report.pdf"
-                first_item = batched_uploaded_files[0]
-                first_idx = first_item['index']
-                report.build_report(
-                    room_name=room_name,
-                    inspection_date=inspection_date,
-                    dmv_jurisdiction=dmv_jurisdiction,
-                    confirmed_items=all_confirmed_items,
-                    before_path=os.path.join(WORKDIR, f"before_{first_idx}.jpg"),
-                    after_path=os.path.join(WORKDIR, f"after_{first_idx}.jpg"),
-                    output_path=output_pdf,
-                    inspector_role="Renters"
+            if st.button("Generate PDF Report & Draft Letter", type="primary", use_container_width=True, key="generate_pdf_btn_multi"):
+                if first_paths is None:
+                    st.warning("Upload at least one complete pair (move-in and move-out photo) first.")
+                else:
+                    output_pdf = os.path.join(WORKDIR, "evidence_report.pdf")   # private to this visitor
+                    try:
+                        report.build_report(
+                            room_name=room_name,
+                            inspection_date=inspection_date,
+                            dmv_jurisdiction=dmv_jurisdiction,
+                            confirmed_items=all_confirmed_items,
+                            before_path=first_paths[0],
+                            after_path=first_paths[1],
+                            output_path=output_pdf,
+                            inspector_role="Renters"
+                        )
+                        with open(output_pdf, "rb") as pdf_file:
+                            st.session_state["pdf_bytes"] = pdf_file.read()
+                    except Exception as e:
+                        st.error(f"Could not build the report: {e}")
+            if st.session_state.get("pdf_bytes"):
+                st.download_button(
+                    label="📥 Download Evidence Report (PDF)",
+                    data=st.session_state["pdf_bytes"],
+                    file_name=f"{room_name.replace(' ', '_').replace('/', '-')}_Evidence_Report.pdf",
+                    mime="application/pdf",
+                    use_container_width=True,
+                    key="download_pdf_btn_multi"
                 )
-                with open(output_pdf, "rb") as pdf_file:
-                    st.download_button(
-                        label="📥 Download Signed Evidence Report (PDF)",
-                        data=pdf_file,
-                        file_name=f"{room_name.replace(' ', '_')}_Evidence_Report.pdf",
-                        mime="application/pdf",
-                        use_container_width=True,
-                        key="download_pdf_btn_multi"
-                    )
             st.markdown('</div>', unsafe_allow_html=True)
 
-    elif demo:
+    elif demo_ok:
         st.markdown('<div class="web-card">', unsafe_allow_html=True)
-        st.write("No photos handy, or no API key? Try the saved example.")
+        st.write("No photos handy, or no API key? Try the saved example. It needs no key and makes no AI call.")
         if st.button("Load the saved example", key="load_demo_btn_unique"):
             st.session_state["use_demo"] = True
             st.rerun()
+        st.markdown('</div>', unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)

@@ -1,0 +1,21 @@
+{
+  "before": "before.jpeg",
+  "after": "after.jpeg",
+  "note": "Saved result from the real model (gemma-4-26b-a4b-it, sensitivity 3) on the original bathtub photos. The photos in this folder are copies with the GPS location data removed.",
+  "items": [
+    {
+      "description": "Large dark stain on the bottom of the bathtub.",
+      "location": "bottom of the bathtub",
+      "category": "stain",
+      "severity": "moderate",
+      "confidence": "high"
+    },
+    {
+      "description": "Dark staining and streaks on the bathtub wall below the spout and overflow plate.",
+      "location": "bathtub wall below the spout and overflow plate",
+      "category": "stain",
+      "severity": "moderate",
+      "confidence": "high"
+    }
+  ]
+}
