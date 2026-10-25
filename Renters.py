@@ -85,7 +85,7 @@ st.markdown("""
 # Header Card
 with st.container():
     st.markdown('<div class="web-card">', unsafe_allow_html=True)
-    st.title("📋 Move-In/Move-Out Evidence Tool")
+    st.title("🏡 Move-In/Move-Out Evidence Tool")
     st.markdown("GDG Build with AI x Hacktoberfest 2026")
     st.info(
         "Your photos are sent to Google's Gemini API for analysis. The AI only suggests "
@@ -236,11 +236,11 @@ else:
     # Summary Metrics Row
     m1, m2, m3 = st.columns(3)
     with m1:
-        st.markdown(f'<div class="web-card" style="text-align: center; padding: 15px;"><p style="color: #8ab4f8; font-size: 0.8rem; margin:0;">ACTIVE JURISDICTION</p><h4 style="color: #4285F4; margin:5px 0 0;">{dmv_jurisdiction.split()[0]}</h4></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="web-card" style="text-align: center; padding: 15px;"><p style="color: #ea4335; font-size: 0.8rem; margin:0;">ACTIVE JURISDICTION</p><h4 style="color: #4285F4; margin:5px 0 0;">{dmv_jurisdiction.split()[0]}</h4></div>', unsafe_allow_html=True)
     with m2:
-        st.markdown(f'<div class="web-card" style="text-align: center; padding: 15px;"><p style="color: #8ab4f8; font-size: 0.8rem; margin:0;">SELECTED ROOM</p><h4 style="color: #34A853; margin:5px 0 0;">{room_name}</h4></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="web-card" style="text-align: center; padding: 15px;"><p style="color: #ea4335; font-size: 0.8rem; margin:0;">SELECTED ROOM</p><h4 style="color: #34A853; margin:5px 0 0;">{room_name}</h4></div>', unsafe_allow_html=True)
     with m3:
-        st.markdown(f'<div class="web-card" style="text-align: center; padding: 15px;"><p style="color: #8ab4f8; font-size: 0.8rem; margin:0;">AI ENGINE</p><h4 style="color: #FBBC05; margin:5px 0 0;">{MODEL}</h4></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="web-card" style="text-align: center; padding: 15px;"><p style="color: #ea4335; font-size: 0.8rem; margin:0;">AI ENGINE</p><h4 style="color: #FBBC05; margin:5px 0 0;">{MODEL}</h4></div>', unsafe_allow_html=True)
 
     # Multi-Issue Upload Section
     st.markdown('<div class="web-card">', unsafe_allow_html=True)
