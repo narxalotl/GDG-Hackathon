@@ -429,10 +429,10 @@ else:
                         else:
                             submissions.save_submission(
                                 share_name, share_unit, room_name,
-                                before_path, after_path, dmv_jurisdiction,
-                                confirmed_items
+                                before_path, after_path, dmv_jurisdiction, confirmed_items
                             )
                             st.success("Sent. The leasing office can now see this room's photos and confirmed items.")
+
 
             if st.button("Generate Official PDF Report & Dispute Letter", type="primary", use_container_width=True):
                 output_pdf = "evidence_report.pdf"
