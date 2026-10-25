@@ -99,7 +99,7 @@ We staged photo pairs where we know exactly what changed: real changes, false-al
 
 [ONE SENTENCE ON WHAT YOU LEARNED, INCLUDING WHERE THE MODEL FAILED.]
 
-Time to produce a report: about [N] minutes from upload to PDF.
+Time to produce a report: about less than 1 minute from upload to PDF.
 
 ## Responsible AI
 
