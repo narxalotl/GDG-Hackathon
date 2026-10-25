@@ -25,6 +25,14 @@ JURISDICTION_LAWS = {
 }
 
 def get_law_details(jurisdiction_name):
-    # Safe fallback prevents app crashes if key isn't found
-    return JURISDICTION_LAWS.get(jurisdiction_name, JURISDICTION_LAWS["Virginia (VRLTA)"])
+    def get_law_details(jurisdiction_name):
+    # Flexible matching based on selected string
+        name_str = str(jurisdiction_name).upper()
+        
+        if "MARYLAND" in name_str or "MD" in name_str:
+            return JURISDICTION_LAWS["MD"]
+        elif "COLUMBIA" in name_str or "DC" in name_str:
+            return JURISDICTION_LAWS["DC"]
+        else:
+            return JURISDICTION_LAWS["VA"]
 
