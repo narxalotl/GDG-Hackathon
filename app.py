@@ -199,6 +199,46 @@ if st.sidebar.button("🔄 Reset Session"):
         del st.session_state[key]
     st.rerun()
 
+# (All your sidebar settings and top header card are above this)
+
+# --- CHECK WHO IS LOGGED IN ---
+if user_role == "Landlord / Leasing Office":
+    # LANDLORD DASHBOARD VIEW
+    st.markdown('<div class="web-card">', unsafe_allow_html=True)
+    st.subheader("🏢 Leasing Office Inspection Dashboard")
+    st.write("Review all incoming tenant inspection submissions and evidence records.")
+
+    reports = database.get_all_reports()
+
+    if not reports:
+        st.info("No tenant inspection reports have been submitted yet.")
+    else:
+        table_data = []
+        for r in reports:
+            table_data.append({
+                "Tenant Name": r[0],
+                "Unit / Apt": r[1],
+                "Room / Area": r[2],
+                "Jurisdiction": r[3],
+                "Submitted At": r[4],
+            })
+        st.dataframe(table_data, use_container_width=True)
+    
+    st.markdown('</div>', unsafe_allow_html=True)
+
+else:
+    # --- MAIN UPLOAD SECTION (Renter View) ---
+    st.markdown('<div class="web-card">', unsafe_allow_html=True)
+    st.subheader("📸 Upload Audit Photos")
+    col1, col2 = st.columns(2)
+    with col1:
+        before_file = st.file_uploader("Upload Before Photo", type=["jpg", "jpeg", "png"], key="before")
+    with col2:
+        after_file = st.file_uploader("Upload After Photo", type=["jpg", "jpeg", "png"], key="after")
+    st.markdown('</div>', unsafe_allow_html=True)
+
+    # (Keep all your existing photo uploading, AI analysis, and PDF generation code indented under this 'else' block)
+
 # --- MAIN UPLOAD SECTION ---
 st.markdown('<div class="web-card">', unsafe_allow_html=True)
 st.subheader("📸 Upload Audit Photos")
