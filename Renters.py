@@ -129,7 +129,9 @@ st.sidebar.markdown("---")
 with st.sidebar.expander("🔐 Leasing Office Login"):
     lo_password = st.text_input("Password", type="password", key="leasing_password_input")
     if st.button("Unlock Dashboard", key="unlock_lo_btn"):
-        if lo_password == "admin123" or lo_password == "leasing123":
+        # .strip() removes any accidental spaces before/after the password
+        clean_pass = (lo_password or "").strip()
+        if clean_pass in ["admin123", "leasing123"]:
             st.session_state["leasing_logged_in"] = True
             st.success("Unlocked!")
             st.rerun()
