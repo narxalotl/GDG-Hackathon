@@ -427,13 +427,16 @@ else:
                         elif not share_ok:
                             st.warning("Please check the box to confirm you agree to share.")
                         else:
-                            safe_jurisdiction = dmv_jurisdiction.split()[0]  # Sanitize jurisdiction for path safety
-                    
+                            safe_jurisdiction = dmv_jurisdiction.split()[0]
+                            
+                            # Automatically create the missing folder so it never throws FileNotFoundError
+                            os.makedirs(safe_jurisdiction, exist_ok=True)
+                            
                             submissions.save_submission(
                                 share_name, share_unit, room_name,
                                 before_path, after_path, safe_jurisdiction,
                                 confirmed_items
-                            )       
+                            )
                             st.success("Sent. The leasing office can now see this room's photos and confirmed items.")
 
             if st.button("Generate Official PDF Report & Dispute Letter", type="primary", use_container_width=True):
