@@ -2,6 +2,7 @@ import json
 import os
 import shutil
 import tempfile
+import submissions
 from datetime import date
 
 import streamlit as st
@@ -315,6 +316,22 @@ if mode:
                     ))
 
         if confirmed_items:
+            with st.expander("Share these findings with the leasing office (optional)"):
+                share_name = st.text_input("Your name", key="share_name")
+                share_unit = st.text_input("Apartment / unit", key="share_unit")
+                share_ok = st.checkbox(
+                    "I agree to share these photos and the items I confirmed with the leasing office.",
+                    key="share_ok")
+                if st.button("Send to leasing office"):
+                    if not (share_name.strip() and share_unit.strip()):
+                        st.warning("Please enter your name and unit.")
+                    elif not share_ok:
+                        st.warning("Please check the box to confirm you agree to share.")
+                    else:
+                        submissions.save_submission(
+                            share_name, share_unit, room_name, dmv_jurisdiction,
+                            before_path, after_path, confirmed_items)
+                        st.success("Sent. The leasing office can now see this room's photos and confirmed items.")
             if st.button("Generate Official PDF Report & Dispute Letter", type="primary"):
                 output_pdf = "evidence_report.pdf"
                 current_date = inspection_date if 'inspection_date' in locals() else date.today()
