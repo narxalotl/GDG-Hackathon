@@ -155,7 +155,7 @@ dmv_jurisdiction = st.sidebar.selectbox(
 )
 ai_sensitivity = st.sidebar.slider(
     "AI Sensitivity Level", min_value=1, max_value=5, value=3,
-    help="Higher sensitivity reports smaller scuffs and marks. Lower sensitivity reports only clear problems."
+    help="Higher sensitivity reports smaller scuffs and marks. Lower sensitivity reports only clear problems.")
 
 st.sidebar.markdown("---")
 
