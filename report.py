@@ -3,6 +3,7 @@ import hashlib
 import io
 import os
 from datetime import datetime
+from zoneinfo import ZoneInfo
 from xml.sax.saxutils import escape
 import dmv_laws
 from PIL import Image, ImageOps
@@ -241,7 +242,8 @@ def build_report(room_name, confirmed_items, dmv_jurisdiction,
         date_text = inspection_date.strftime("%m/%d/%Y") if hasattr(inspection_date, "strftime") else str(inspection_date)
         story.append(Paragraph(f"<b>Inspection date:</b> {esc(date_text)}", subtitle_style))
         
-    story.append(Paragraph(f"<b>Report generated:</b> {datetime.now().strftime('%m/%d/%Y, %I:%M %p')}", subtitle_style))
+    eastern_time = datetime.now(ZoneInfo("America/New_York"))
+    story.append(Paragraph(f"<b>Report generated:</b> {eastern_time.strftime('%m/%d/%Y %I:%M %p')} ET", subtitle_style))
     story.append(Spacer(1, 6))
     story.append(Paragraph("<b>DISCLAIMER:</b> This tool helps you document conditions. It is not legal advice.", disclaimer_style))
     story.append(Spacer(1, 8))
