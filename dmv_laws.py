@@ -24,17 +24,12 @@ JURISDICTION_LAWS = {
     }
 }
 
-def get_law_details(jurisdiction_name):
-    def get_law_details(jurisdiction_name):
-    # Flexible matching based on selected string
-        name_str = str(jurisdiction_name).upper()
-        
-        def get_law_details(jurisdiction_name):
-            name_str = str(jurisdiction_name).upper()        
-            if "MARYLAND" in name_str or "MD" in name_str:
-                return JURISDICTION_LAWS["MD"]
-            elif "COLUMBIA" in name_str or "DC" in name_str or "DISTRICT" in name_str:
-                return JURISDICTION_LAWS["DC"]
-            else:
-                return JURISDICTION_LAWS["VA"]
 
+def get_law_details(jurisdiction_name):
+    """Return the law summary for the jurisdiction picked in the sidebar (Virginia is the default)."""
+    name = str(jurisdiction_name).upper()
+    if "MARYLAND" in name:
+        return JURISDICTION_LAWS["Maryland Security Deposit Law"]
+    if "COLUMBIA" in name or "DISTRICT" in name or name.strip().startswith("DC"):
+        return JURISDICTION_LAWS["District of Columbia (DC Tenant Bill of Rights)"]
+    return JURISDICTION_LAWS["Virginia (VRLTA)"]
