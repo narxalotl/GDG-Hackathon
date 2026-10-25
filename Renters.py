@@ -421,18 +421,20 @@ else:
                         "I agree to share these photos and the items I confirmed with the leasing office.",
                         key="share_ok"
                     )
-                    if st.button("Send to leasing office"):
+                    if st.button("Send to leasing office", key="send_leasing_btn"):
                         if not (share_name.strip() and share_unit.strip()):
                             st.warning("Please enter your name and unit.")
                         elif not share_ok:
                             st.warning("Please check the box to confirm you agree to share.")
                         else:
+                            safe_jurisdiction = dmv_jurisdiction.split()[0]  # Sanitize jurisdiction for path safety
+                    
                             submissions.save_submission(
                                 share_name, share_unit, room_name,
-                                before_path, after_path, dmv_jurisdiction, confirmed_items
-                            )
+                                before_path, after_path, safe_jurisdiction,
+                                confirmed_items
+                            )       
                             st.success("Sent. The leasing office can now see this room's photos and confirmed items.")
-
 
             if st.button("Generate Official PDF Report & Dispute Letter", type="primary", use_container_width=True):
                 output_pdf = "evidence_report.pdf"
