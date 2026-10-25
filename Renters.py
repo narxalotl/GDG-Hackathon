@@ -226,6 +226,11 @@ else:
     # Main Upload Section
     st.markdown('<div class="web-card">', unsafe_allow_html=True)
     st.subheader("📸 Upload Audit Photos")
+    st.info(
+        "💡 **Tip for Best AI Accuracy:** Try to take your Move-Out photo from the "
+        "**same angle and lighting** as your Move-In photo. Consistent framing helps "
+        "the AI accurately distinguish real damage from shadows or perspective shifts!"
+    )
     col1, col2 = st.columns(2)
     with col1:
         before_file = st.file_uploader("Upload Before Photo", type=["jpg", "jpeg", "png"], key="before")
