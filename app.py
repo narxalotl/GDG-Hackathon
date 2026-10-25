@@ -122,19 +122,19 @@ inspection_date = st.sidebar.date_input(
     help="Shown in the report as a date you entered. The report also shows the date each photo was taken, read from the photo files."
 )
 
+dmv_jurisdiction = st.sidebar.selectbox(
+    "DMV Jurisdiction", 
+    [
+        "Maryland Security Deposit Law", 
+        "District of Columbia (DC Tenant Bill of Rights)",
+        "Virginia (VRLTA)"
+    ]
+)
+
 # 3. AI Sensitivity Slider (this is passed to the model)
 ai_sensitivity = st.sidebar.slider(
     "AI Sensitivity Level", min_value=1, max_value=5, value=3,
     help="Higher sensitivity reports smaller scuffs and marks. Lower sensitivity reports only clear problems."
-)
-
-dmv_jurisdiction = st.sidebar.selectbox(
-    "DMV Jurisdiction", 
-    [
-        "Virginia (VRLTA)", 
-        "Maryland Security Deposit Law", 
-        "District of Columbia (DC Tenant Bill of Rights)"
-    ]
 )
 
 st.sidebar.markdown("---")

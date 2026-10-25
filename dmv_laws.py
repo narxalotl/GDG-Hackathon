@@ -29,10 +29,12 @@ def get_law_details(jurisdiction_name):
     # Flexible matching based on selected string
         name_str = str(jurisdiction_name).upper()
         
-        if "MARYLAND" in name_str or "MD" in name_str:
-            return JURISDICTION_LAWS["MD"]
-        elif "COLUMBIA" in name_str or "DC" in name_str:
-            return JURISDICTION_LAWS["DC"]
-        else:
-            return JURISDICTION_LAWS["VA"]
+        def get_law_details(jurisdiction_name):
+            name_str = str(jurisdiction_name).upper()        
+            if "MARYLAND" in name_str or "MD" in name_str:
+                return JURISDICTION_LAWS["MD"]
+            elif "COLUMBIA" in name_str or "DC" in name_str or "DISTRICT" in name_str:
+                return JURISDICTION_LAWS["DC"]
+            else:
+                return JURISDICTION_LAWS["VA"]
 
