@@ -421,7 +421,7 @@ else:
                         "I agree to share these photos and the items I confirmed with the leasing office.",
                         key="share_ok"
                     )
-                    if st.button("Send to leasing office", key="send_leasing_btn"):
+                    if st.button("Send to leasing office"):
                         if not (share_name.strip() and share_unit.strip()):
                             st.warning("Please enter your name and unit.")
                         elif not share_ok:
