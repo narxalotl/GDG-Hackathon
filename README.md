@@ -34,15 +34,15 @@ report. Small and working beats large and unfinished.
 | Model | `gemma-4-31b-it` via the Gemini API (`google-genai` Python package) |
 | Alternative tested | `gemma-4-26b-a4b-it` |
 | Where it is called | `pipeline.py`, function `compare_photos` |
-| Gemma license | [LINK TO GEMMA LICENSE / TERMS] |
+| Gemma license | https://ai.google.dev/gemma/terms |
 
 Gemma does the core comparison itself. No other model is used for that step.
 
 ## Quick start (under 10 minutes)
 
 ```bash
-git clone [REPO URL]
-cd [REPO FOLDER]
+git clone https://github.com/narxalotl/GDG-Hackathon
+cd GDG-Hackathon
 python -m venv venv
 source venv/bin/activate        # Windows: venv\Scripts\activate
 pip install -r requirements.txt
@@ -108,19 +108,18 @@ Time to produce a report: about less than 1 minute from upload to PDF.
 - The prompt tells the model to ignore lighting, shadows, and moved items, and to say "low
   confidence" when unsure.
 - Legal text in the letter comes from Virginia statute text our team copied and checked
-  ([SOURCE LINK], saved in `data/va_deposit_rules.txt`). The model does not write legal claims.
+  (https://law.lis.virginia.gov/vacode/title55.1/chapter12/section55.1-1226/, saved in `dmv_laws`). The model does not write legal claims.
 - A visible banner states the tool is not legal advice.
 
 **Privacy**
 - Photos are sent to Google's Gemini API for analysis. The app says so before upload.
-- Gemini API free-tier data handling: [WHAT WE FOUND IN GOOGLE'S TERMS, WITH LINK].
 - No accounts and no personal details beyond what the renter types into the letter.
 - Photos are processed in a per-session temporary folder. They are kept on the server **only if**
   the renter chooses **Send to leasing office**, with a consent checkbox.
 - GPS location data is stripped from every photo committed to this repo. Photo timestamps are kept.
 
 **Accessibility:** labeled inputs, keyboard-only use, text captions on images, plain-language
-wording, status shown with text and not color alone. [UPDATE AFTER KEYBOARD / SCREEN READER TEST]
+wording, status shown with text and not color alone.
 
 **Equity:** photo quality depends on the phone someone owns. The app includes tips for taking good
 comparison photos.
@@ -134,7 +133,6 @@ comparison photos.
 - Shared submissions are stored on local disk. Hosting that resets its disk (for example Streamlit
   Community Cloud) would lose them. A database or storage bucket is future work.
 - The app depends on one shared API key and free-tier rate limits.
-- [ANYTHING ELSE THAT FAILED OR WAS CUT]
 
 ## Cost and deployment
 
@@ -153,7 +151,7 @@ comparison photos.
 
 ## Problem validation
 
-[3-5 SHORT STUDENT QUOTES OR PERSONAS. Describe review patterns generally, with no company names.]
+We can ask residents in the future about their specific personal experiences, as many residents have different experiences with DMV housing.
 
 ## Dependencies
 
@@ -161,10 +159,10 @@ comparison photos.
 
 ## Team
 
-- Person 1: AI pipeline and evaluation, [NAME]
-- Person 2: App and interface, accessibility, [NAME]
-- Person 3: Report, legal text, README, submissions, [NAME]
+- Person 1: Maryam Jadoon
+- Person 2: Samina Mouhamad
+- Person 3: Trisha Cherian
 
 ## License
 
-[Apache-2.0 or MIT]. See `LICENSE`.
+Apache-2.0. See `LICENSE`.
