@@ -3,6 +3,7 @@ import io
 import os
 from datetime import datetime
 from xml.sax.saxutils import escape
+import dmv_laws
 
 from PIL import Image, ImageOps
 from reportlab.lib.pagesizes import letter
@@ -148,14 +149,14 @@ def build_letter(room_name: str, items: list, photo_dates=None) -> str:
     )
 
 
-def build_report(room_name, confirmed_items, before_path, after_path, output_path="evidence_report.pdf",
+def build_report(room_name, confirmed_items, dmv_jurisdiction, before_path, after_path, output_path="evidence_report.pdf",
                  inspection_date=None, inspector_role=None):
     """Write a PDF evidence report and return the file path.
     confirmed_items: dicts from the AI that the tenant checked, each optionally with
                      tenant_view and tenant_note.
     inspection_date / inspector_role: optional, from the app's sidebar."""
     is_tenant = inspector_role is None or any(w in inspector_role.lower() for w in ("tenant", "renter"))
-
+    law_info = dmv_laws.get_law_details(dmv_jurisdiction)
     doc = SimpleDocTemplate(
         output_path,
         pagesize=letter,

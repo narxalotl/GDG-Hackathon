@@ -128,6 +128,15 @@ ai_sensitivity = st.sidebar.slider(
     help="Higher sensitivity reports smaller scuffs and marks. Lower sensitivity reports only clear problems."
 )
 
+dmv_jurisdiction = st.sidebar.selectbox(
+    "DMV Jurisdiction", 
+    [
+        "Virginia (VRLTA)", 
+        "Maryland Security Deposit Law", 
+        "District of Columbia (DC Tenant Bill of Rights)"
+    ]
+)
+
 st.sidebar.markdown("---")
 
 # Room Selection (Dropdown + Custom "Other")
@@ -306,30 +315,25 @@ if mode:
                     ))
 
         if confirmed_items:
-            if st.button("Generate PDF Report & Draft Letter", type="primary"):
-                output_pdf = os.path.join(WORKDIR, "evidence_report.pdf")
-                try:
-                    report.build_report(
-                        room_name=room_name,
-                        confirmed_items=confirmed_items,
-                        before_path=before_path,
-                        after_path=after_path,
-                        output_path=output_pdf,
-                        inspection_date=str(inspection_date),
-                        inspector_role=user_role,
+            if st.button("Generate Official PDF Report & Dispute Letter", type="primary"):
+                output_pdf = "evidence_report.pdf"
+                current_date = inspection_date if 'inspection_date' in locals() else date.today()
+                items_to_report = confirmed_items if 'confirmed_items' in locals() else []
+            
+                report.build_report(
+                    room_name=room_name,
+                    inspection_date=current_date,
+                    dmv_jurisdiction=dmv_jurisdiction,
+                    confirmed_items=items_to_report,
+                    before_path=before_path,
+                    after_path=after_path,
+                    output_path=output_pdf
+                )
+                
+                with open(output_pdf, "rb") as pdf_file:
+                    st.download_button(
+                        label="Download Signed Evidence Report (PDF)",
+                        data=pdf_file,
+                        file_name=f"{room_name.replace(' ', '_')}_Evidence_Report.pdf",
+                        mime="application/pdf"
                     )
-                    with open(output_pdf, "rb") as pdf_file:
-                        st.session_state["pdf_bytes"] = pdf_file.read()
-                except Exception as e:   # show a readable message instead of crashing
-                    st.error(f"Could not build the report: {e}")
-        elif diffs:
-            st.info("Check at least one difference above to generate a report.")
-
-        # The download button sits outside the Generate button so it stays visible after a rerun.
-        if st.session_state.get("pdf_bytes"):
-            st.download_button(
-                label="Download Evidence Report (PDF)",
-                data=st.session_state["pdf_bytes"],
-                file_name=f"{room_name.replace(' ', '_').replace('/', '-')}_Evidence_Report.pdf",
-                mime="application/pdf"
-            )
