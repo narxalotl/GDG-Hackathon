@@ -127,3 +127,28 @@ def list_submissions(rid):
         subs.append(meta)
     subs.sort(key=lambda m: m["uploaded_at"], reverse=True)
     return subs
+
+
+def demo_data():
+    """One made-up renter and submission built from the saved example (demo/), so the leasing office view
+    can be shown with no password and without anyone's real data. Returns (renter, submission) or None."""
+    try:
+        with open(os.path.join(BASE, "demo", "demo.json"), encoding="utf-8") as f:
+            d = json.load(f)
+        before = os.path.join(BASE, "demo", d["before"])
+        after = os.path.join(BASE, "demo", d["after"])
+        if not (os.path.exists(before) and os.path.exists(after)):
+            return None
+    except Exception:
+        return None
+    now = datetime.now().astimezone().isoformat(timespec="seconds")
+    items = [dict(it) for it in d.get("items", [])]
+    if items:
+        items[0]["tenant_note"] = "(Sample data: a renter's own note would appear here.)"
+    renter = {"id": "sample-renter", "name": "Sample Renter", "unit": "Demo Unit", "count": 1, "last_upload": now}
+    submission = {
+        "id": "sample", "room": "Bathroom", "jurisdiction": "Virginia (VRLTA)", "uploaded_at": now,
+        "before_file": d["before"], "after_file": d["after"], "before_path": before, "after_path": after,
+        "before_sha256": _sha256(before), "after_sha256": _sha256(after), "items": items,
+    }
+    return renter, submission

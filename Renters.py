@@ -153,6 +153,8 @@ st.sidebar.markdown("---")
 
 # Secure Password-Protected Leasing Office Login in Sidebar
 with st.sidebar.expander("🔐 Leasing Office Login"):
+    st.caption("Judges: open the **Leasing Office** page in the menu above and click "
+               "**Preview with sample data**. No password needed.")
     lo_password = st.text_input("Password", type="password", key="leasing_password_input")
     if st.button("Unlock Dashboard", key="unlock_lo_btn"):
         office_pw = get_office_password()
