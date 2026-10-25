@@ -405,9 +405,13 @@ else:
                     st.warning("Please check the box to confirm you agree to share.")
                 else:
                     submissions.save_submission(
-                        share_name, share_unit, room_name,
-                        before_path, after_path, dmv_jurisdiction,
-                        confirmed_items
+                        share_name,       # 1. name
+                        share_unit,       # 2. unit
+                        room_name,        # 3. room
+                        dmv_jurisdiction, # 4. jurisdiction (Now in the correct slot!)
+                        before_path,      # 5. before_path
+                        after_path,       # 6. after_path
+                        confirmed_items   # 7. items
                     )
                     st.success("Sent. The leasing office can now see this room's photos and confirmed items.")
 
