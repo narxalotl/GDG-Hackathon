@@ -1,3 +1,4 @@
+# report.py
 import hashlib
 import io
 import os
@@ -14,6 +15,13 @@ from reportlab.platypus import (
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 
+# Where the verified Virginia rules text lives
+RULES_PATHS = [
+    os.path.join("data", "va_deposit_rules.txt"),
+    os.path.join("data", "data", "va_deposit_rules.txt"),
+]
+
+# The three choices the tenant can make for each item
 VIEW_NORMAL = "Normal wear and tear"
 VIEW_PREEXISTING = "Already there at move-in"
 VIEW_RESPONSIBLE = "Damage I accept responsibility for"
@@ -21,6 +29,16 @@ VIEW_RESPONSIBLE = "Damage I accept responsibility for"
 def esc(value) -> str:
     """Make text safe for ReportLab Paragraphs."""
     return escape(str(value))
+
+def load_rules_text() -> str:
+    """Return the saved rules text, or an empty string if the file is missing."""
+    for path in RULES_PATHS:
+        if os.path.exists(path):
+            with open(path, encoding="utf-8", errors="replace") as f:
+                text = f.read().strip()
+                if text:
+                    return text
+    return ""
 
 def fit_image(path: str, max_w: int = 225, max_h: int = 165) -> RLImage:
     """Show a photo upright and undistorted, shrunk to fit the box."""
@@ -73,11 +91,8 @@ def view_color(view: str) -> str:
         return "#c5221f"  # red
     return "#5f6368"      # gray
 
-def build_letter(room_name: str, items: list, photo_dates=None, law_info=None) -> str:
-    """Draft letter text built from what the TENANT chose, using active law info."""
-    if law_info is None:
-        law_info = dmv_laws.get_law_details("Virginia")
-
+def build_letter(room_name: str, items: list, photo_dates=None, statute_name="Virginia Residential Landlord and Tenant Act") -> str:
+    """Draft letter text built from what the TENANT chose for each item."""
     dates_sentence = ""
     if photo_dates and NOT_FOUND not in photo_dates:
         dates_sentence = (f" According to the photo files' metadata, the move-in photo was taken on "
@@ -105,17 +120,17 @@ def build_letter(room_name: str, items: list, photo_dates=None, law_info=None) -
         summary = ("The attached report documents the condition of the area at move-in and move-out. "
                    "No differences were recorded.")
                    
-    ask = "I ask that no deductions be made for normal wear and tear." if counts[VIEW_NORMAL] else ""
+    ask = " I ask that no deductions be made for normal wear and tear." if counts[VIEW_NORMAL] else ""
     
     return (
         "Dear Property Management / Landlord,<br/><br/>"
         f"I am writing about the security deposit for the unit at [Unit Address]. I documented the condition of the "
         f"<b>{esc(room_name)}</b> at move-in and move-out with photographs.{esc(dates_sentence)} The attached report records "
         f"a SHA-256 fingerprint (hash) of each original photo file.<br/><br/>"
-        f"{esc(summary)} {esc(ask)}<br/><br/>"
+        f"{esc(summary)}{esc(ask)}<br/><br/>"
         f"Please send me an itemized written accounting of any deductions from my security deposit and return the "
-        f"remaining balance within the deadlines required by the <b>{esc(law_info['statute'])}</b> "
-        f"(see the regional rules reference in the attached report).<br/><br/>"
+        f"remaining balance within the deadlines required by the <b>{esc(statute_name)}</b> "
+        f"(see the rules reference in the attached report).<br/><br/>"
         "Thank you for your attention to this matter.<br/><br/>"
         "Sincerely, <br/>[Tenant Name]<br/><br/>"
         "<font color='#C5221F'>[Edit this draft before sending: add your name and unit address and check that it says "
@@ -128,8 +143,19 @@ def build_report(room_name, confirmed_items, dmv_jurisdiction,
     """Write a PDF evidence report and return the file path."""
     is_tenant = inspector_role is None or any(w in inspector_role.lower() for w in ("tenant", "renter"))
     
-    # FETCH DYNAMIC JURISDICTION LAW INFO
-    law_info = dmv_laws.get_law_details(dmv_jurisdiction)
+    # CRASH-PROOF LAW INFO FETCHING
+    try:
+        law_info = dmv_laws.get_law_details(dmv_jurisdiction)
+    except Exception:
+        law_info = None
+
+    if not law_info or not isinstance(law_info, dict):
+        law_info = {
+            "jurisdiction": str(dmv_jurisdiction or "Virginia"),
+            "statute": "Virginia Code § 55.1-1226 (VRLTA)",
+            "return_window": "45 days",
+            "key_rule": "Landlords must provide an itemized list of deductions and final payment within 45 days."
+        }
 
     doc = SimpleDocTemplate(
         output_path,
@@ -179,7 +205,8 @@ def build_report(room_name, confirmed_items, dmv_jurisdiction,
     # Title & Metadata
     story.append(Paragraph("Move-In/Move-Out Evidence Report", title_style))
     story.append(Spacer(1, 4))
-    story.append(Paragraph(f"<b>Inspection Area:</b> {esc(room_name)} &nbsp;&nbsp;|&nbsp;&nbsp; <b>Jurisdiction:</b> {esc(law_info.get('jurisdiction', dmv_jurisdiction))}", subtitle_style))    
+    story.append(Paragraph(f"<b>Inspection Area:</b> {esc(room_name)} &nbsp;&nbsp;|&nbsp;&nbsp; <b>Jurisdiction:</b> {esc(law_info.get('jurisdiction', 'Virginia'))}", subtitle_style))
+    
     if inspector_role:
         story.append(Paragraph(f"<b>Prepared by:</b> {esc(inspector_role)}", subtitle_style))
         
@@ -294,7 +321,8 @@ def build_report(room_name, confirmed_items, dmv_jurisdiction,
     if is_tenant:
         story.append(Paragraph("Draft Security Deposit Letter (edit before sending)", heading_style))
         story.append(Spacer(1, 8))
-        letter_table = Table([[Paragraph(build_letter(room_name, confirmed_items or [], (before_taken, after_taken), law_info), body_style)]], colWidths=[510])
+        letter_content = build_letter(room_name, confirmed_items or [], (before_taken, after_taken), law_info.get('statute', 'Virginia Law'))
+        letter_table = Table([[Paragraph(letter_content, body_style)]], colWidths=[510])
         letter_table.setStyle(TableStyle([
             ('BACKGROUND', (0,0), (-1,-1), colors.HexColor('#f8f9fa')),
             ('BOX', (0,0), (-1,-1), 1, colors.HexColor('#dadce0')),
@@ -306,13 +334,13 @@ def build_report(room_name, confirmed_items, dmv_jurisdiction,
         story.append(letter_table)
         story.append(Spacer(1, 14))
         
-    # Regional Rules Reference (Dynamic based on jurisdiction)
-    story.append(Paragraph(f"{esc(law_info['jurisdiction'])} Statutory Rules Reference", heading_style))
+    # Regional Rules Reference
+    story.append(Paragraph(f"{esc(law_info.get('jurisdiction', 'Regional'))} Statutory Rules Reference", heading_style))
     story.append(Spacer(1, 6))
     story.append(Paragraph(
-        f"<b>Statute:</b> {esc(law_info['statute'])}<br/>"
-        f"<b>Mandatory Window:</b> {esc(law_info['return_window'])}<br/>"
-        f"<b>Key Compliance Rule:</b> {esc(law_info['key_rule'])}",
+        f"<b>Statute:</b> {esc(law_info.get('statute', 'N/A'))}<br/>"
+        f"<b>Mandatory Window:</b> {esc(law_info.get('return_window', '45 days'))}<br/>"
+        f"<b>Key Compliance Rule:</b> {esc(law_info.get('key_rule', 'N/A'))}",
         small_style
     ))
     
