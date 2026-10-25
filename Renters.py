@@ -10,18 +10,16 @@ from dotenv import load_dotenv
 import report
 from pipeline import compare_photos, PipelineError, MODEL, have_server_key
 
+
 load_dotenv()
+
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 DEMO_JSON = os.path.join(BASE, "demo", "demo.json")
 
 
-
-
 # How many live AI analyses one browser session may run on the app's shared key.
 MAX_LIVE_RUNS = int(os.environ.get("MAX_LIVE_RUNS", "8"))
-
-
 
 
 # Page Configuration & Clean Theme
@@ -32,16 +30,12 @@ st.set_page_config(
 )
 
 
-
-
 # Secrets check
 try:
     if not os.environ.get("GEMINI_API_KEY") and "GEMINI_API_KEY" in st.secrets:
         os.environ["GEMINI_API_KEY"] = str(st.secrets["GEMINI_API_KEY"])
 except Exception:
     pass
-
-
 
 
 # Modern SaaS CSS styling with Google top bar and cards
@@ -103,8 +97,6 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 
-
-
 # Single, Clean Header Card with House Emoji
 with st.container():
     st.markdown('<div class="web-card">', unsafe_allow_html=True)
@@ -116,8 +108,6 @@ with st.container():
         "This tool helps you document conditions. It is not legal advice."
     )
     st.markdown('</div>', unsafe_allow_html=True)
-
-
 
 
 def load_demo():
@@ -133,18 +123,12 @@ def load_demo():
     return None
 
 
-
-
 demo = load_demo()
-
-
 
 
 if "workdir" not in st.session_state:
     st.session_state["workdir"] = tempfile.mkdtemp(prefix="evidence_")
 WORKDIR = st.session_state["workdir"]
-
-
 
 
 # --- SIDEBAR: MODERN SAAS NAVIGATION & SETTINGS ---
@@ -156,27 +140,19 @@ user_role = st.sidebar.radio(
 )
 
 
-
-
 st.sidebar.markdown("---")
 st.sidebar.markdown(f"**Active Portal:** <span style='color: #4285F4; font-weight: bold;'>{user_role}</span>", unsafe_allow_html=True)
 st.sidebar.markdown(f"**System Status:** <span style='color: #34a853; font-weight: bold;'>● Online</span>", unsafe_allow_html=True)
 st.sidebar.markdown("---")
 
 
-
-
 st.sidebar.header("Inspection Settings")
-
-
 
 
 inspection_date = st.sidebar.date_input(
     "Inspection Date (you enter this)", value=date.today(),
     help="Shown in the report as a date you entered. The report also shows the date each photo was taken, read from the photo files."
 )
-
-
 
 
 dmv_jurisdiction = st.sidebar.selectbox(
@@ -189,19 +165,13 @@ dmv_jurisdiction = st.sidebar.selectbox(
 )
 
 
-
-
 ai_sensitivity = st.sidebar.slider(
     "AI Sensitivity Level", min_value=1, max_value=5, value=3,
     help="Higher sensitivity reports smaller scuffs and marks. Lower sensitivity reports only clear problems."
 )
 
 
-
-
 st.sidebar.markdown("---")
-
-
 
 
 room_option = st.sidebar.selectbox(
@@ -214,11 +184,7 @@ else:
     room_name = room_option
 
 
-
-
 st.sidebar.markdown("---")
-
-
 
 
 with st.sidebar.expander("AI access (optional)"):
@@ -226,8 +192,6 @@ with st.sidebar.expander("AI access (optional)"):
         "Your own Gemini API key", type="password", key="user_key",
         help="A free key from Google AI Studio. It is used only to analyze your photos and is kept only for this browser session. This app does not save it."
     )
-
-
 
 
 user_key = (st.session_state.get("user_key") or "").strip()
@@ -239,11 +203,7 @@ else:
     st.sidebar.caption("AI access: no key set. Load the saved example, or paste your own key above.")
 
 
-
-
 st.sidebar.caption(f"AI model: {MODEL}")
-
-
 
 
 if st.sidebar.button("🔄 Reset Session"):
@@ -251,8 +211,6 @@ if st.sidebar.button("🔄 Reset Session"):
     for key in list(st.session_state.keys()):
         del st.session_state[key]
     st.rerun()
-
-
 
 
 # --- CHECK WHO IS LOGGED IN ---
@@ -263,12 +221,8 @@ if user_role == "Leasing Office":
     st.write("Review incoming tenant inspection submissions and evidence records.")
 
 
-
-
     # Load submissions using the built-in submissions module
     all_subs = submissions.get_all_submissions() if hasattr(submissions, "get_all_submissions") else []
-
-
 
 
     if not all_subs:
@@ -287,8 +241,6 @@ if user_role == "Leasing Office":
     st.markdown('</div>', unsafe_allow_html=True)
 
 
-
-
 else:
     # --- RENTERS (TENANT) VIEW ---
    
@@ -301,95 +253,22 @@ else:
     with m3:
         st.markdown(f'<div class="web-card" style="text-align: center; padding: 15px;"><p style="color: #8b949e; font-size: 0.8rem; margin:0;">AI ENGINE</p><h4 style="color: #FBBC05; margin:5px 0 0 0;">{MODEL}</h4></div>', unsafe_allow_html=True)
     # Main Upload Section
-    # --- MULTI-ISSUE UPLOAD SECTION (MAX 5 PAIRS) ---
-# --- 1. MULTI-ISSUE UPLOAD SECTION (MAX 5 PAIRS) ---
-st.markdown('<div class="web-card">', unsafe_allow_html=True)
-st.subheader("📸 Upload Audit Photos")
-st.info(
-    "💡 **Tip for Best AI Accuracy:** Try to take your Move-Out photo from the "
-    "**same angle and lighting** as your Move-In photo. Consistent framing helps "
-    "the AI accurately distinguish real damage from shadows or perspective shifts!\n\n"
-    "⚠️ **Note:** You can add a maximum of **5 pairs of issues** (Move-In + Move-Out pairs, 10 pictures total max)."
-)
-
-
-# Initialize counter for issue pairs in session state
-if "num_issue_pairs" not in st.session_state:
-    st.session_state.num_issue_pairs = 1
-
-
-batched_uploaded_files = []
-
-
-# Loop to render current number of upload pairs with unique keys
-for i in range(st.session_state.num_issue_pairs):
-    if st.session_state.num_issue_pairs > 1:
-        st.markdown(f"**Issue Pair {i + 1} of {st.session_state.num_issue_pairs}**")
-   
+    st.markdown('<div class="web-card">', unsafe_allow_html=True)
+    st.subheader("📸 Upload Audit Photos")
+    st.info(
+        "💡 **Tip for Best AI Accuracy:** Try to take your Move-Out photo from the "
+        "**same angle and lighting** as your Move-In photo. Consistent framing helps "
+        "the AI accurately distinguish real damage from shadows or perspective shifts!"
+    )
     col1, col2 = st.columns(2)
     with col1:
-        b_file = st.file_uploader(f"Upload Move-In (Before) Photo #{i + 1}", type=["jpg", "jpeg", "png"], key=f"unique_before_key_{i}")
+        before_file = st.file_uploader("Upload Before Photo", type=["jpg", "jpeg", "png"], key="before")
     with col2:
-        a_file = st.file_uploader(f"Upload Move-Out (After) Photo #{i + 1}", type=["jpg", "jpeg", "png"], key=f"unique_after_key_{i}")
-   
-    if b_file and a_file:
-        batched_uploaded_files.append({"index": i, "before": b_file, "after": a_file})
-   
-    if i < st.session_state.num_issue_pairs - 1:
-        st.markdown("---")
-
-
-# Button to add another issue pair (capped at 5) - OUTSIDE the loop
-if st.session_state.num_issue_pairs < 5:
-    if st.button("➕ Add another issue", key="unique_global_add_issue_btn"):
-        st.session_state.num_issue_pairs += 1
-        st.rerun()
-else:
-    st.caption("🔒 Maximum limit of 5 issue pairs (10 photos total) reached.")
-
-
-st.markdown('</div>', unsafe_allow_html=True)
-
-
-
-
-# --- 2. FILE PROCESSOR & ANALYSIS TRIGGER ---
-mode, before_path, after_path, signature, demo_items = None, None, None, None, None
-
-
-if batched_uploaded_files:
-    mode = "upload"
-    st.session_state.pop("use_demo", None)
-   
-    # Grab the first pair to run the live visual comparison & analysis
-    active_pair = batched_uploaded_files[0]
-    b_file = active_pair["before"]
-    a_file = active_pair["after"]
-   
-    before_ext = os.path.splitext(b_file.name)[1] or ".jpg"
-    after_ext = os.path.splitext(a_file.name)[1] or ".jpg"
-    before_path = os.path.join(WORKDIR, "before" + before_ext)
-    after_path = os.path.join(WORKDIR, "after" + after_ext)
-   
-    with open(before_path, "wb") as f:
-        f.write(b_file.getbuffer())
-    with open(after_path, "wb") as f:
-        f.write(a_file.getbuffer())
-       
-    signature = ("upload", b_file.name, b_file.size, a_file.name, a_file.size)
-elif st.session_state.get("use_demo") and demo:
-    mode = "demo"
-    before_path, after_path, demo_items = demo
-    signature = ("demo",)
-elif demo:
-    st.markdown('<div class="web-card">', unsafe_allow_html=True)
-    st.write("No photos handy, or no API key? Try the saved example. It needs no key and makes no AI call.")
-    if st.button("Load the saved example", key="load_demo_btn_unique"):
-        st.session_state["use_demo"] = True
-        st.rerun()
+        after_file = st.file_uploader("Upload After Photo", type=["jpg", "jpeg", "png"], key="after")
     st.markdown('</div>', unsafe_allow_html=True)
-   
-TENANT_VIEWS = [
+
+
+    TENANT_VIEWS = [
         "Not sure yet",
         "Normal wear and tear",
         "Already there at move-in",
@@ -397,44 +276,32 @@ TENANT_VIEWS = [
     ]
 
 
+    mode, before_path, after_path, signature, demo_items = None, None, None, None, None
 
 
-mode, before_path, after_path, signature, demo_items = None, None, None, None, None
-
-
-if batched_uploaded_files:
-    mode = "upload"
-    st.session_state.pop("use_demo", None)
-   
-    # Grab the active/first pair for current analysis display
-    active_pair = batched_uploaded_files[0]
-    b_file = active_pair["before"]
-    a_file = active_pair["after"]
-   
-    before_ext = os.path.splitext(b_file.name)[1] or ".jpg"
-    after_ext = os.path.splitext(a_file.name)[1] or ".jpg"
-    before_path = os.path.join(WORKDIR, "before" + before_ext)
-    after_path = os.path.join(WORKDIR, "after" + after_ext)
-   
-    with open(before_path, "wb") as f:
-        f.write(b_file.getbuffer())
-    with open(after_path, "wb") as f:
-        f.write(a_file.getbuffer())
-       
-    signature = ("upload", b_file.name, b_file.size, a_file.name, a_file.size)
-elif st.session_state.get("use_demo") and demo:
-    mode = "demo"
-    before_path, after_path, demo_items = demo
-    signature = ("demo",)
-elif demo:
-    st.markdown('<div class="web-card">', unsafe_allow_html=True)
-    st.write("No photos handy, or no API key? Try the saved example. It needs no key and makes no AI call.")
-    if st.button("Load the saved example"):
-        st.session_state["use_demo"] = True
-        st.rerun()
-    st.markdown('</div>', unsafe_allow_html=True)
-
-
+    if before_file and after_file:
+        mode = "upload"
+        st.session_state.pop("use_demo", None)
+        before_ext = os.path.splitext(before_file.name)[1] or ".jpg"
+        after_ext = os.path.splitext(after_file.name)[1] or ".jpg"
+        before_path = os.path.join(WORKDIR, "before" + before_ext)
+        after_path = os.path.join(WORKDIR, "after" + after_ext)
+        with open(before_path, "wb") as f:
+            f.write(before_file.getbuffer())
+        with open(after_path, "wb") as f:
+            f.write(after_file.getbuffer())
+        signature = ("upload", before_file.name, before_file.size, after_file.name, after_file.size)
+    elif st.session_state.get("use_demo") and demo:
+        mode = "demo"
+        before_path, after_path, demo_items = demo
+        signature = ("demo",)
+    elif demo:
+        st.markdown('<div class="web-card">', unsafe_allow_html=True)
+        st.write("No photos handy, or no API key? Try the saved example. It needs no key and makes no AI call.")
+        if st.button("Load the saved example"):
+            st.session_state["use_demo"] = True
+            st.rerun()
+        st.markdown('</div>', unsafe_allow_html=True)
 
 
     if st.session_state.get("signature") != signature:
@@ -443,21 +310,15 @@ elif demo:
         st.session_state.pop("pdf_bytes", None)
 
 
-
-
     if mode == "demo":
         st.session_state["diffs"] = demo_items
         st.session_state["run_id"] = st.session_state.get("run_id", 0) + 1
-
-
 
 
     if before_path and after_path and os.path.exists(before_path) and os.path.exists(after_path):
         st.markdown('<div class="web-card">', unsafe_allow_html=True)
         st.subheader("🔍 Visual Comparison")
         st.image([before_path, after_path], caption=["Move-In", "Move-Out"], width=300)
-
-
 
 
         taken_before = report.get_image_timestamp(before_path)
@@ -469,8 +330,6 @@ elif demo:
                 "At least one photo has no date stored in its file (some apps and editors remove it). "
                 "The report will say the date was not found. Use the original photo files if you have them."
             )
-
-
 
 
         if mode == "demo":
@@ -511,8 +370,6 @@ elif demo:
                                 "in the sidebar, or load the saved example."
                             )
         st.markdown('</div>', unsafe_allow_html=True)
-
-
 
 
     diffs = st.session_state.get("diffs")
@@ -556,8 +413,6 @@ elif demo:
                     ))
 
 
-
-
             if confirmed_items:
                 with st.expander("Share these findings with the leasing office (optional)"):
                     share_name = st.text_input("Your name", key="share_name")
@@ -577,8 +432,6 @@ elif demo:
                                 before_path, after_path, dmv_jurisdiction, confirmed_items
                             )
                             st.success("Sent. The leasing office can now see this room's photos and confirmed items.")
-
-
 
 
             if st.button("Generate Official PDF Report & Dispute Letter", type="primary", use_container_width=True):
@@ -606,5 +459,3 @@ elif demo:
                         use_container_width=True
                     )
         st.markdown('</div>', unsafe_allow_html=True)
-
-
