@@ -355,8 +355,13 @@ if diffs is not None:
                         st.warning("Please check the box to confirm you agree to share.")
                     else:
                         submissions.save_submission(
-                            share_name, share_unit, room_name,
-                            before_path, after_path, confirmed_items
+                            name=share_name,
+                            unit=share_unit,
+                            room=room_name,
+                            jurisdiction=dmv_jurisdiction,
+                            before_path=before_path,
+                            after_path=after_path,
+                            items=confirmed_items,
                         )
                         st.success("Sent. The leasing office can now see this room's photos and confirmed items.")
 
