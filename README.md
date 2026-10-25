@@ -165,4 +165,4 @@ We can ask residents in the future about their specific personal experiences, as
 
 ## License
 
-Apache-2.0. See `LICENSE`.
+MIT. See `LICENSE`.
