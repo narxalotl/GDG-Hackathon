@@ -123,7 +123,6 @@ renter_nav = st.sidebar.radio(
     ["Renters Portal"],
     label_visibility="collapsed"
 )
-)
 
 st.sidebar.markdown("---")
 st.sidebar.markdown(f"**Active Portal:** <span style='color: #4285F4; font-weight: bold;'>{user_role}</span>", unsafe_allow_html=True)
