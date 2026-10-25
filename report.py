@@ -179,8 +179,7 @@ def build_report(room_name, confirmed_items, dmv_jurisdiction,
     # Title & Metadata
     story.append(Paragraph("Move-In/Move-Out Evidence Report", title_style))
     story.append(Spacer(1, 4))
-    story.append(Paragraph(f"<b>Inspection Area:</b> {esc(room_name)} &nbsp;&nbsp;|&nbsp;&nbsp; <b>Jurisdiction:</b> {esc(law_info['jurisdiction'])}", subtitle_style))
-    
+    story.append(Paragraph(f"<b>Inspection Area:</b> {esc(room_name)} &nbsp;&nbsp;|&nbsp;&nbsp; <b>Jurisdiction:</b> {esc(law_info.get('jurisdiction', dmv_jurisdiction))}", subtitle_style))    
     if inspector_role:
         story.append(Paragraph(f"<b>Prepared by:</b> {esc(inspector_role)}", subtitle_style))
         
