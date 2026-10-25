@@ -89,10 +89,20 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # App Header Title (Clean & Minimal)
+# Clean Top Title with House Emoji
+st.markdown("### 🏡 Move-In/Move-Out Evidence Tool")
+st.markdown("<p style='color: #8b949e; font-size: 0.85rem; margin-top: -15px;'>GDG Build with AI x Hacktoberfest 2026</p>", unsafe_allow_html=True)
+st.markdown("<div style='margin-top: 10px;'></div>", unsafe_allow_html=True)
+
+# Info Card (No duplicate title inside)
 with st.container():
     st.markdown('<div class="web-card">', unsafe_allow_html=True)
-    st.title("🏡 Move-In/Move-Out Evidence Tool")
-    st.markdown("GDG Build with AI x Hacktoberfest 2026")
+    st.info(
+        "Your photos are sent to Google's Gemini API for analysis. The AI only suggests "
+        "**possible** differences. You decide which ones are real and how to describe them.\n\n"
+        "This tool helps you document conditions. It is not legal advice."
+    )
+    st.markdown('</div>', unsafe_allow_html=True)
 
 # App Header Card
 with st.container():
