@@ -89,9 +89,10 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # App Header Title (Clean & Minimal)
-st.markdown("### 🏡 Move-In/Move-Out Evidence Tool")
-st.markdown("<p style='color: #8b949e; font-size: 0.85rem; margin-top: -15px;'>GDG Build with AI x Hacktoberfest 2026</p>", unsafe_allow_html=True)
-st.markdown("<div style='margin-top: 10px;'></div>", unsafe_allow_html=True)
+with st.container():
+    st.markdown('<div class="web-card">', unsafe_allow_html=True)
+    st.title("🏡 Move-In/Move-Out Evidence Tool")
+    st.markdown("GDG Build with AI x Hacktoberfest 2026")
 
 # App Header Card
 with st.container():
