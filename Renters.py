@@ -118,9 +118,9 @@ if "batched_issues" not in st.session_state:
 
 # Sidebar Navigation & Settings
 st.sidebar.markdown("### 🧭 Portal Navigation")
-renter_nav = st.sidebar.radio(
-    "Navigation",
-    ["Renters Portal"],
+user_role = st.sidebar.radio(
+    "Select Portal",
+    ["Renters"],
     label_visibility="collapsed"
 )
 
@@ -182,59 +182,22 @@ if st.sidebar.button("Reset Session"):
         del st.session_state[key]
     st.rerun()
 
-st.sidebar.markdown("---")
-
-if "leasing_logged_in" not in st.session_state:
-    st.session_state["leasing_logged_in"] = False
-
-# Secure Password-Protected Leasing Office Login in the Sidebar
-with st.sidebar.expander("🔐 Leasing Office Login"):
-    lo_password = st.text_input("Password", type="password", key="leasing_password_input")
-    if st.button("Unlock Dashboard", key="unlock_lo_btn"):
-        if lo_password == "admin123" or lo_password == "leasing123":
-            st.session_state["leasing_logged_in"] = True
-            st.success("Unlocked!")
-            st.rerun()
-        else:
-            st.error("Incorrect password.")
-
-if st.session_state["leasing_logged_in"]:
-    if st.sidebar.button("🔒 Lock Leasing Office View", key="lock_lo_btn"):
-        st.session_state["leasing_logged_in"] = False
-        st.rerun()
-
-st.sidebar.markdown(f"**System Status:** <span style='color: #34a853; font-weight: bold;'>🟢 Online</span>", unsafe_allow_html=True)
-st.sidebar.markdown("---")
-
-# Main view switcher: If Leasing Office is unlocked, show the Admin Dashboard; otherwise show the Renters Portal
-if st.session_state["leasing_logged_in"]:
+if user_role == "Leasing Office":
     st.markdown('<div class="web-card">', unsafe_allow_html=True)
     st.subheader("🏢 Leasing Office Inspection Dashboard")
     st.write("Review incoming tenant inspection submissions and evidence records.")
     
-    all_subs = []
-    try:
-        for renter in submissions.list_renters():
-            r_name = renter.get("name", "N/A")
-            r_unit = renter.get("unit", "N/A")
-            for s in submissions.list_submissions(renter.get("id")):
-                s["tenant_name"] = r_name
-                s["tenant_unit"] = r_unit
-                all_subs.append(s)
-    except Exception:
-        pass
-
+    all_subs = submissions.get_all_submissions() if hasattr(submissions, "get_all_submissions") else []
     if not all_subs:
         st.info("No tenant inspection reports have been submitted yet.")
     else:
         table_data = []
         for s in all_subs:
             table_data.append({
-                "Tenant Name": s.get("tenant_name", "N/A"),
-                "Unit / Apt": s.get("tenant_unit", "N/A"),
+                "Tenant Name": s.get("name", "N/A"),
+                "Unit / Apt": s.get("unit", "N/A"),
                 "Room / Area": s.get("room", "N/A"),
-                "Jurisdiction": s.get("jurisdiction", "N/A"),
-                "Uploaded At": s.get("uploaded_at", "N/A")
+                "Jurisdiction": s.get("jurisdiction", "N/A")
             })
         st.dataframe(table_data, use_container_width=True)
     st.markdown('</div>', unsafe_allow_html=True)
