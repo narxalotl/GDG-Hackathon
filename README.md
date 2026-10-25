@@ -9,7 +9,7 @@ GDG Hackathon Repo
 
 ## The problem
 
-Students in Blacksburg regularly run into unexpected move-out fees and conflicting claims about
+Residents in the DMV regularly run into unexpected move-out fees and conflicting claims about
 damage that may have been there from the start. Online reviews of local leasing offices describe
 these patterns. Tenants rarely have organized, timestamped evidence to push back with, and
 leasing offices have no fair, shared record to point to either.
@@ -20,7 +20,7 @@ leasing offices have no fair, shared record to point to either.
 2. **Gemma 4** (through the Gemini API) flags *possible* differences.
 3. The renter **confirms or dismisses** each one and adds a note. Only confirmed items are used.
 4. The app produces a **PDF evidence report** (side-by-side photos, photo timestamps, SHA-256 file
-   hashes) and a **draft security-deposit letter** citing the relevant Virginia rules.
+   hashes) and a **draft security-deposit letter** citing the relevant DMV rules.
 5. Optionally, the renter can **share** the confirmed items with the leasing office, who can open a
    renter's account and see the photos, upload date, and issues on a separate password-protected page.
 
@@ -109,6 +109,10 @@ Time to produce a report: about less than 1 minute from upload to PDF.
   confidence" when unsure.
 - Legal text in the letter comes from Virginia statute text our team copied and checked
   (https://law.lis.virginia.gov/vacode/title55.1/chapter12/section55.1-1226/, saved in `dmv_laws`). The model does not write legal claims.
+- Legal text in the letter comes from Maryland statute text our team copied and checked
+  (https://mgaleg.maryland.gov/mgawebsite/Laws/StatuteText?article=grp&section=8-203, saved in `dmv_laws`). The model does not write legal claims.
+- Legal text in the letter comes from DC statute text our team copied and checked
+  (https://code.dccouncil.gov/us/dc/council/code/sections/42-3502.17, saved in `dmv_laws`). The model does not write legal claims.
 - A visible banner states the tool is not legal advice.
 
 **Privacy**
