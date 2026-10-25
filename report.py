@@ -154,12 +154,28 @@ def build_report(room_name, confirmed_items, dmv_jurisdiction,
         law_info = None
 
     if not law_info or not isinstance(law_info, dict):
-        law_info = {
-            "jurisdiction": str(dmv_jurisdiction or "Virginia"),
-            "statute": "Virginia Code § 55.1-1226 (VRLTA)",
-            "return_window": "45 days",
-            "key_rule": "Landlords must provide an itemized list of deductions and final payment within 45 days."
-        }
+        juris_str = str(dmv_jurisdiction or "")
+        if "Maryland" in juris_str:
+            law_info = {
+                "jurisdiction": "Maryland",
+                "statute": "Maryland Real Property Code Ann. § 8-203",
+                "return_window": "45 days",
+                "key_rule": "Landlords must return the deposit and itemized list within 45 days."
+            }
+        elif "District of Columbia" in juris_str or "DC" in juris_str:
+            law_info = {
+                "jurisdiction": "District of Columbia",
+                "statute": "DC Code § 42-3502.17 (Tenant Bill of Rights)",
+                "return_window": "45 days",
+                "key_rule": "Landlords must return security deposits within 45 days of vacancy."
+            }
+        else:
+            law_info = {
+                "jurisdiction": "Virginia",
+                "statute": "Virginia Code § 55.1-1226 (VRLTA)",
+                "return_window": "45 days",
+                "key_rule": "Landlords must provide an itemized list of deductions and final payment within 45 days."
+            }
 
     doc = SimpleDocTemplate(
         output_path,
