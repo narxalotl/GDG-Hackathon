@@ -253,18 +253,47 @@ else:
     with m3:
         st.markdown(f'<div class="web-card" style="text-align: center; padding: 15px;"><p style="color: #8b949e; font-size: 0.8rem; margin:0;">AI ENGINE</p><h4 style="color: #FBBC05; margin:5px 0 0 0;">{MODEL}</h4></div>', unsafe_allow_html=True)
     # Main Upload Section
-    st.markdown('<div class="web-card">', unsafe_allow_html=True)
-    st.subheader("📸 Upload Audit Photos")
-    st.info(
-        "💡 **Tip for Best AI Accuracy:** Try to take your Move-Out photo from the "
-        "**same angle and lighting** as your Move-In photo. Consistent framing helps "
-        "the AI accurately distinguish real damage from shadows or perspective shifts!"
-    )
+    # --- MULTI-ISSUE UPLOAD SECTION (MAX 5 PAIRS) ---
+st.markdown('<div class="web-card">', unsafe_allow_html=True)
+st.subheader("📸 Upload Audit Photos")
+st.info(
+    "💡 **Tip for Best AI Accuracy:** Try to take your Move-Out photo from the "
+    "**same angle and lighting** as your Move-In photo. Consistent framing helps "
+    "the AI accurately distinguish real damage from shadows or perspective shifts!\n\n"
+    "⚠️ **Note:** You can add a maximum of **5 pairs of issues** (Move-In + Move-Out pairs, 10 pictures total max)."
+)
+
+# Initialize counter for issue pairs in session state
+if "num_issue_pairs" not in st.session_state:
+    st.session_state.num_issue_pairs = 1
+
+batched_uploaded_files = []
+
+# Loop to render current number of upload pairs
+for i in range(st.session_state.num_issue_pairs):
+    if st.session_state.num_issue_pairs > 1:
+        st.markdown(f"**Issue Pair {i + 1} of {st.session_state.num_issue_pairs}**")
+    
     col1, col2 = st.columns(2)
     with col1:
-        before_file = st.file_uploader("Upload Before Photo", type=["jpg", "jpeg", "png"], key="before")
+        b_file = st.file_uploader(f"Upload Move-In (Before) Photo #{i + 1}", type=["jpg", "jpeg", "png"], key=f"before_{i}")
     with col2:
-        after_file = st.file_uploader("Upload After Photo", type=["jpg", "jpeg", "png"], key="after")
+        a_file = st.file_uploader(f"Upload Move-Out (After) Photo #{i + 1}", type=["jpg", "jpeg", "png"], key=f"after_{i}")
+    
+    if b_file and a_file:
+        batched_uploaded_files.append({"index": i, "before": b_file, "after": a_file})
+    
+    if i < st.session_state.num_issue_pairs - 1:
+        st.markdown("---")
+
+    # Button to add another issue pair (capped at 5)
+    if st.session_state.num_issue_pairs < 5:
+        if st.button("➕ Add another issue"):
+            st.session_state.num_issue_pairs += 1
+            st.rerun()
+    else:
+        st.caption("🔒 Maximum limit of 5 issue pairs (10 photos total) reached.")
+
     st.markdown('</div>', unsafe_allow_html=True)
 
 
