@@ -7,10 +7,7 @@ import submissions
 from datetime import date
 import streamlit as st
 from dotenv import load_dotenv
-import database
 
-# Initialize the database table when the app boots up
-database.init_db()
 load_dotenv()
 import report
 from pipeline import compare_photos, PipelineError, MODEL, have_server_key
@@ -204,7 +201,6 @@ if user_role == "Landlord / Leasing Office":
     st.subheader("🏢 Leasing Office Inspection Dashboard")
     st.write("Review all incoming tenant inspection submissions and evidence records.")
 
-    reports = database.get_all_reports()
 
     if not reports:
         st.info("No tenant inspection reports have been submitted yet.")
@@ -387,7 +383,6 @@ else:
                                 share_name, share_unit, room_name,
                                 before_path, after_path, dmv_jurisdiction, confirmed_items
                             )
-                            database.save_report(share_name, share_unit, room_name, dmv_jurisdiction)
                             st.success("Sent. The leasing office can now see this room's photos and confirmed items.")
 
             if st.button("Generate Official PDF Report & Dispute Letter", type="primary", use_container_width=True):
