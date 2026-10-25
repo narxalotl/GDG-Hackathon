@@ -7,12 +7,10 @@ import submissions
 from datetime import date
 import streamlit as st
 from dotenv import load_dotenv
-
 import database
 
 # Initialize the database table when the app boots up
 database.init_db()
-
 load_dotenv()
 import report
 from pipeline import compare_photos, PipelineError, MODEL, have_server_key
@@ -199,8 +197,6 @@ if st.sidebar.button("🔄 Reset Session"):
         del st.session_state[key]
     st.rerun()
 
-# (All your sidebar settings and top header card are above this)
-
 # --- CHECK WHO IS LOGGED IN ---
 if user_role == "Landlord / Leasing Office":
     # LANDLORD DASHBOARD VIEW
@@ -227,7 +223,7 @@ if user_role == "Landlord / Leasing Office":
     st.markdown('</div>', unsafe_allow_html=True)
 
 else:
-    # --- MAIN UPLOAD SECTION (Renter View) ---
+    # --- RENTER (TENANT) VIEW ---
     st.markdown('<div class="web-card">', unsafe_allow_html=True)
     st.subheader("📸 Upload Audit Photos")
     col1, col2 = st.columns(2)
@@ -237,202 +233,185 @@ else:
         after_file = st.file_uploader("Upload After Photo", type=["jpg", "jpeg", "png"], key="after")
     st.markdown('</div>', unsafe_allow_html=True)
 
-    # (Keep all your existing photo uploading, AI analysis, and PDF generation code indented under this 'else' block)
+    TENANT_VIEWS = [
+        "Not sure yet",
+        "Normal wear and tear",
+        "Already there at move-in",
+        "Damage I accept responsibility for",
+    ]
 
-# --- MAIN UPLOAD SECTION ---
-st.markdown('<div class="web-card">', unsafe_allow_html=True)
-st.subheader("📸 Upload Audit Photos")
-col1, col2 = st.columns(2)
-with col1:
-    before_file = st.file_uploader("Upload Before Photo", type=["jpg", "jpeg", "png"], key="before")
-with col2:
-    after_file = st.file_uploader("Upload After Photo", type=["jpg", "jpeg", "png"], key="after")
-st.markdown('</div>', unsafe_allow_html=True)
+    mode, before_path, after_path, signature, demo_items = None, None, None, None, None
 
-TENANT_VIEWS = [
-    "Not sure yet",
-    "Normal wear and tear",
-    "Already there at move-in",
-    "Damage I accept responsibility for",
-]
+    if before_file and after_file:
+        mode = "upload"
+        st.session_state.pop("use_demo", None)
+        before_ext = os.path.splitext(before_file.name)[1] or ".jpg"
+        after_ext = os.path.splitext(after_file.name)[1] or ".jpg"
+        before_path = os.path.join(WORKDIR, "before" + before_ext)
+        after_path = os.path.join(WORKDIR, "after" + after_ext)
+        with open(before_path, "wb") as f:
+            f.write(before_file.getbuffer())
+        with open(after_path, "wb") as f:
+            f.write(after_file.getbuffer())
+        signature = ("upload", before_file.name, before_file.size, after_file.name, after_file.size)
+    elif st.session_state.get("use_demo") and demo:
+        mode = "demo"
+        before_path, after_path, demo_items = demo
+        signature = ("demo",)
+    elif demo:
+        st.markdown('<div class="web-card">', unsafe_allow_html=True)
+        st.write("No photos handy, or no API key? Try the saved example. It needs no key and makes no AI call.")
+        if st.button("Load the saved example"):
+            st.session_state["use_demo"] = True
+            st.rerun()
+        st.markdown('</div>', unsafe_allow_html=True)
 
-mode, before_path, after_path, signature, demo_items = None, None, None, None, None
-
-if before_file and after_file:
-    mode = "upload"
-    st.session_state.pop("use_demo", None)
-    before_ext = os.path.splitext(before_file.name)[1] or ".jpg"
-    after_ext = os.path.splitext(after_file.name)[1] or ".jpg"
-    before_path = os.path.join(WORKDIR, "before" + before_ext)
-    after_path = os.path.join(WORKDIR, "after" + after_ext)
-    with open(before_path, "wb") as f:
-        f.write(before_file.getbuffer())
-    with open(after_path, "wb") as f:
-        f.write(after_file.getbuffer())
-    signature = ("upload", before_file.name, before_file.size, after_file.name, after_file.size)
-elif st.session_state.get("use_demo") and demo:
-    mode = "demo"
-    before_path, after_path, demo_items = demo
-    signature = ("demo",)
-elif demo:
-    st.markdown('<div class="web-card">', unsafe_allow_html=True)
-    st.write("No photos handy, or no API key? Try the saved example. It needs no key and makes no AI call.")
-    if st.button("Load the saved example"):
-        st.session_state["use_demo"] = True
-        st.rerun()
-    st.markdown('</div>', unsafe_allow_html=True)
-
-if st.session_state.get("signature") != signature:
-    st.session_state["signature"] = signature
-    st.session_state.pop("diffs", None)
-    st.session_state.pop("pdf_bytes", None)
-
-if mode == "demo":
-    st.session_state["diffs"] = demo_items
-    st.session_state["run_id"] = st.session_state.get("run_id", 0) + 1
-
-if before_path and after_path and os.path.exists(before_path) and os.path.exists(after_path):
-    st.markdown('<div class="web-card">', unsafe_allow_html=True)
-    st.subheader("🔍 Visual Comparison")
-    st.image([before_path, after_path], caption=["Move-In", "Move-Out"], width=300)
-
-    taken_before = report.get_image_timestamp(before_path)
-    taken_after = report.get_image_timestamp(after_path)
-    st.caption(f"Dates found in the photo files: Move-in ({taken_before}) | Move-out ({taken_after})")
-    
-    if report.NOT_FOUND in (taken_before, taken_after):
-        st.warning(
-            "At least one photo has no date stored in its file (some apps and editors remove it). "
-            "The report will say the date was not found. Use the original photo files if you have them."
-        )
+    if st.session_state.get("signature") != signature:
+        st.session_state["signature"] = signature
+        st.session_state.pop("diffs", None)
+        st.session_state.pop("pdf_bytes", None)
 
     if mode == "demo":
-        st.info("You are looking at a saved example result. No AI call was made. Upload your own photos to run the AI.")
-        if st.button("Close the saved example"):
-            for k in ("use_demo", "signature", "diffs", "pdf_bytes"):
-                st.session_state.pop(k, None)
-            st.rerun()
-    else:
-        if st.button("Run Analysis", type="primary", use_container_width=True):
-            if not user_key and not have_server_key():
-                st.warning(
-                    "No AI key is available here. Paste your own free Gemini API key in the sidebar "
-                    "(under AI access), or load the saved example."
-                )
-            elif not user_key and st.session_state.get("live_runs", 0) >= MAX_LIVE_RUNS:
-                st.warning(
-                    f"This session has used its {MAX_LIVE_RUNS} analyses on the app's shared key. "
-                    "Paste your own free Gemini API key in the sidebar to keep going."
-                )
-            else:
-                with st.spinner(f"Analyzing differences with Gemma 4 (sensitivity {ai_sensitivity})... this can take up to a minute."):
-                    try:
-                        st.session_state["diffs"] = compare_photos(
-                            before_path, after_path,
-                            sensitivity=ai_sensitivity, api_key=user_key or None
-                        )
-                        st.session_state["run_id"] = st.session_state.get("run_id", 0) + 1
-                        st.session_state.pop("pdf_bytes", None)
-                        if not user_key:
-                            st.session_state["live_runs"] = st.session_state.get("live_runs", 0) + 1
-                        st.success("Analysis complete!")
-                    except PipelineError as e:
-                        st.session_state.pop("diffs", None)
-                        st.error(str(e))
-                        st.caption(
-                            "If the AI is busy or out of quota, you can paste your own free Gemini API key "
-                            "in the sidebar, or load the saved example."
-                        )
-    st.markdown('</div>', unsafe_allow_html=True)
+        st.session_state["diffs"] = demo_items
+        st.session_state["run_id"] = st.session_state.get("run_id", 0) + 1
 
-diffs = st.session_state.get("diffs")
-if diffs is not None:
-    st.markdown('<div class="web-card">', unsafe_allow_html=True)
-    st.subheader("✍️ Review Possible Differences & Add Your Notes")
-    confirmed_items = []
-    if not diffs:
-        st.success("The AI did not find meaningful differences between these photos.")
-    else:
-        st.caption("Check the box for each difference that is real. Only checked items go in the report.")
-        run_id = st.session_state.get("run_id", 0)
-        for idx, item in enumerate(diffs):
-            k = f"{run_id}_{idx}"
-            st.markdown(f"**Item {idx+1}: {item.get('category', 'other').capitalize()}** in {room_name} ({item.get('location', '')})")
-            st.write(f"AI finding: {item.get('description', '')}")
-            st.caption(f"Severity: {item.get('severity', 'unknown')} | AI confidence: {item.get('confidence', 'unknown')}")
-            
-            include = st.checkbox("This difference is real. Include it in the report.", key=f"include_{k}")
-            
-            view = st.selectbox("Your view of this item", TENANT_VIEWS, key=f"view_{k}")
-            if view in ("Normal wear and tear", "Already there at move-in"):
-                st.markdown(f'<span class="pill-normal">{view}</span>', unsafe_allow_html=True)
-            elif view == "Not sure yet":
-                st.markdown(f'<span class="pill-neutral">{view}</span>', unsafe_allow_html=True)
-            else:
-                st.markdown(f'<span class="pill-damage">{view}</span>', unsafe_allow_html=True)
-            
-            st.markdown("")
-            tenant_note = st.text_input(
-                f"Add your note or context for item {idx + 1} (optional):",
-                key=f"note_{k}",
-                placeholder="e.g., This scuff was already present on move-in day."
+    if before_path and after_path and os.path.exists(before_path) and os.path.exists(after_path):
+        st.markdown('<div class="web-card">', unsafe_allow_html=True)
+        st.subheader("🔍 Visual Comparison")
+        st.image([before_path, after_path], caption=["Move-In", "Move-Out"], width=300)
+
+        taken_before = report.get_image_timestamp(before_path)
+        taken_after = report.get_image_timestamp(after_path)
+        st.caption(f"Dates found in the photo files: Move-in ({taken_before}) | Move-out ({taken_after})")
+        
+        if report.NOT_FOUND in (taken_before, taken_after):
+            st.warning(
+                "At least one photo has no date stored in its file (some apps and editors remove it). "
+                "The report will say the date was not found. Use the original photo files if you have them."
             )
-            st.markdown("---")
-            if include:
-                confirmed_items.append(dict(
-                    item,
-                    tenant_view="" if view == "Not sure yet" else view,
-                    tenant_note=tenant_note,
-                ))
 
-        if confirmed_items:
-            with st.expander("Share these findings with the leasing office (optional)"):
-                share_name = st.text_input("Your name", key="share_name")
-                share_unit = st.text_input("Apartment / unit", key="share_unit")
-                share_ok = st.checkbox(
-                    "I agree to share these photos and the items I confirmed with the leasing office.",
-                    key="share_ok"
-                )
-                if st.button("Send to leasing office"):
-                    if not (share_name.strip() and share_unit.strip()):
-                        st.warning("Please enter your name and unit.")
-                    elif not share_ok:
-                        st.warning("Please check the box to confirm you agree to share.")
-                    else:
-                        submissions.save_submission(
-                            name=share_name,
-                            unit=share_unit,
-                            room=room_name,
-                            jurisdiction=dmv_jurisdiction,
-                            before_path=before_path,
-                            after_path=after_path,
-                            items=confirmed_items,
-                        )
-                        database.save_report(share_name, share_unit, room_name, dmv_jurisdiction)
-                        st.success("Sent. The leasing office can now see this room's photos and confirmed items.")
+        if mode == "demo":
+            st.info("You are looking at a saved example result. No AI call was made. Upload your own photos to run the AI.")
+            if st.button("Close the saved example"):
+                for k in ("use_demo", "signature", "diffs", "pdf_bytes"):
+                    st.session_state.pop(k, None)
+                st.rerun()
+        else:
+            if st.button("Run Analysis", type="primary", use_container_width=True):
+                if not user_key and not have_server_key():
+                    st.warning(
+                        "No AI key is available here. Paste your own free Gemini API key in the sidebar "
+                        "(under AI access), or load the saved example."
+                    )
+                elif not user_key and st.session_state.get("live_runs", 0) >= MAX_LIVE_RUNS:
+                    st.warning(
+                        f"This session has used its {MAX_LIVE_RUNS} analyses on the app's shared key. "
+                        "Paste your own free Gemini API key in the sidebar to keep going."
+                    )
+                else:
+                    with st.spinner(f"Analyzing differences with Gemma 4 (sensitivity {ai_sensitivity})... this can take up to a minute."):
+                        try:
+                            st.session_state["diffs"] = compare_photos(
+                                before_path, after_path,
+                                sensitivity=ai_sensitivity, api_key=user_key or None
+                            )
+                            st.session_state["run_id"] = st.session_state.get("run_id", 0) + 1
+                            st.session_state.pop("pdf_bytes", None)
+                            if not user_key:
+                                st.session_state["live_runs"] = st.session_state.get("live_runs", 0) + 1
+                            st.success("Analysis complete!")
+                        except PipelineError as e:
+                            st.session_state.pop("diffs", None)
+                            st.error(str(e))
+                            st.caption(
+                                "If the AI is busy or out of quota, you can paste your own free Gemini API key "
+                                "in the sidebar, or load the saved example."
+                            )
+        st.markdown('</div>', unsafe_allow_html=True)
 
-        if st.button("Generate Official PDF Report & Dispute Letter", type="primary", use_container_width=True):
-            output_pdf = "evidence_report.pdf"
-            current_date = inspection_date if 'inspection_date' in locals() else date.today()
-            items_to_report = confirmed_items if 'confirmed_items' in locals() else []
-            
-            report.build_report(
-                room_name=room_name,
-                inspection_date=current_date,
-                dmv_jurisdiction=dmv_jurisdiction,
-                confirmed_items=items_to_report,
-                before_path=before_path,
-                after_path=after_path,
-                output_path=output_pdf,
-                inspector_role=user_role
-            )
-            
-            with open(output_pdf, "rb") as pdf_file:
-                st.download_button(
-                    label="📥 Download Signed Evidence Report (PDF)",
-                    data=pdf_file,
-                    file_name=f"{room_name.replace(' ', '_')}_Evidence_Report.pdf",
-                    mime="application/pdf",
-                    use_container_width=True
+    diffs = st.session_state.get("diffs")
+    if diffs is not None:
+        st.markdown('<div class="web-card">', unsafe_allow_html=True)
+        st.subheader("✍️ Review Possible Differences & Add Your Notes")
+        confirmed_items = []
+        if not diffs:
+            st.success("The AI did not find meaningful differences between these photos.")
+        else:
+            st.caption("Check the box for each difference that is real. Only checked items go in the report.")
+            run_id = st.session_state.get("run_id", 0)
+            for idx, item in enumerate(diffs):
+                k = f"{run_id}_{idx}"
+                st.markdown(f"**Item {idx+1}: {item.get('category', 'other').capitalize()}** in {room_name} ({item.get('location', '')})")
+                st.write(f"AI finding: {item.get('description', '')}")
+                st.caption(f"Severity: {item.get('severity', 'unknown')} | AI confidence: {item.get('confidence', 'unknown')}")
+                
+                include = st.checkbox("This difference is real. Include it in the report.", key=f"include_{k}")
+                
+                view = st.selectbox("Your view of this item", TENANT_VIEWS, key=f"view_{k}")
+                if view in ("Normal wear and tear", "Already there at move-in"):
+                    st.markdown(f'<span class="pill-normal">{view}</span>', unsafe_allow_html=True)
+                elif view == "Not sure yet":
+                    st.markdown(f'<span class="pill-neutral">{view}</span>', unsafe_allow_html=True)
+                else:
+                    st.markdown(f'<span class="pill-damage">{view}</span>', unsafe_allow_html=True)
+                
+                st.markdown("")
+                tenant_note = st.text_input(
+                    f"Add your note or context for item {idx + 1} (optional):",
+                    key=f"note_{k}",
+                    placeholder="e.g., This scuff was already present on move-in day."
                 )
-    st.markdown('</div>', unsafe_allow_html=True)
+                st.markdown("---")
+                if include:
+                    confirmed_items.append(dict(
+                        item,
+                        tenant_view="" if view == "Not sure yet" else view,
+                        tenant_note=tenant_note,
+                    ))
+
+            if confirmed_items:
+                with st.expander("Share these findings with the leasing office (optional)"):
+                    share_name = st.text_input("Your name", key="share_name")
+                    share_unit = st.text_input("Apartment / unit", key="share_unit")
+                    share_ok = st.checkbox(
+                        "I agree to share these photos and the items I confirmed with the leasing office.",
+                        key="share_ok"
+                    )
+                    if st.button("Send to leasing office"):
+                        if not (share_name.strip() and share_unit.strip()):
+                            st.warning("Please enter your name and unit.")
+                        elif not share_ok:
+                            st.warning("Please check the box to confirm you agree to share.")
+                        else:
+                            submissions.save_submission(
+                                share_name, share_unit, room_name,
+                                before_path, after_path, dmv_jurisdiction, confirmed_items
+                            )
+                            database.save_report(share_name, share_unit, room_name, dmv_jurisdiction)
+                            st.success("Sent. The leasing office can now see this room's photos and confirmed items.")
+
+            if st.button("Generate Official PDF Report & Dispute Letter", type="primary", use_container_width=True):
+                output_pdf = "evidence_report.pdf"
+                current_date = inspection_date if 'inspection_date' in locals() else date.today()
+                items_to_report = confirmed_items if 'confirmed_items' in locals() else []
+                
+                report.build_report(
+                    room_name=room_name,
+                    inspection_date=current_date,
+                    dmv_jurisdiction=dmv_jurisdiction,
+                    confirmed_items=items_to_report,
+                    before_path=before_path,
+                    after_path=after_path,
+                    output_path=output_pdf,
+                    inspector_role=user_role
+                )
+                
+                with open(output_pdf, "rb") as pdf_file:
+                    st.download_button(
+                        label="📥 Download Signed Evidence Report (PDF)",
+                        data=pdf_file,
+                        file_name=f"{room_name.replace(' ', '_')}_Evidence_Report.pdf",
+                        mime="application/pdf",
+                        use_container_width=True
+                    )
+        st.markdown('</div>', unsafe_allow_html=True)
