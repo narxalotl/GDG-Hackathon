@@ -307,30 +307,37 @@ for i in range(st.session_state.num_issue_pairs):
 
     mode, before_path, after_path, signature, demo_items = None, None, None, None, None
 
-
-    if before_file and after_file:
-        mode = "upload"
-        st.session_state.pop("use_demo", None)
-        before_ext = os.path.splitext(before_file.name)[1] or ".jpg"
-        after_ext = os.path.splitext(after_file.name)[1] or ".jpg"
-        before_path = os.path.join(WORKDIR, "before" + before_ext)
-        after_path = os.path.join(WORKDIR, "after" + after_ext)
-        with open(before_path, "wb") as f:
-            f.write(before_file.getbuffer())
-        with open(after_path, "wb") as f:
-            f.write(after_file.getbuffer())
-        signature = ("upload", before_file.name, before_file.size, after_file.name, after_file.size)
-    elif st.session_state.get("use_demo") and demo:
-        mode = "demo"
-        before_path, after_path, demo_items = demo
-        signature = ("demo",)
-    elif demo:
-        st.markdown('<div class="web-card">', unsafe_allow_html=True)
-        st.write("No photos handy, or no API key? Try the saved example. It needs no key and makes no AI call.")
-        if st.button("Load the saved example"):
-            st.session_state["use_demo"] = True
-            st.rerun()
-        st.markdown('</div>', unsafe_allow_html=True)
+if batched_uploaded_files:
+    mode = "upload"
+    st.session_state.pop("use_demo", None)
+    
+    # Grab the active/first pair for current analysis display
+    active_pair = batched_uploaded_files[0]
+    b_file = active_pair["before"]
+    a_file = active_pair["after"]
+    
+    before_ext = os.path.splitext(b_file.name)[1] or ".jpg"
+    after_ext = os.path.splitext(a_file.name)[1] or ".jpg"
+    before_path = os.path.join(WORKDIR, "before" + before_ext)
+    after_path = os.path.join(WORKDIR, "after" + after_ext)
+    
+    with open(before_path, "wb") as f:
+        f.write(b_file.getbuffer())
+    with open(after_path, "wb") as f:
+        f.write(a_file.getbuffer())
+        
+    signature = ("upload", b_file.name, b_file.size, a_file.name, a_file.size)
+elif st.session_state.get("use_demo") and demo:
+    mode = "demo"
+    before_path, after_path, demo_items = demo
+    signature = ("demo",)
+elif demo:
+    st.markdown('<div class="web-card">', unsafe_allow_html=True)
+    st.write("No photos handy, or no API key? Try the saved example. It needs no key and makes no AI call.")
+    if st.button("Load the saved example"):
+        st.session_state["use_demo"] = True
+        st.rerun()
+    st.markdown('</div>', unsafe_allow_html=True)
 
 
     if st.session_state.get("signature") != signature:
