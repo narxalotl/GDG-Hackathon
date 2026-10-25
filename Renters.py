@@ -288,17 +288,17 @@ for i in range(st.session_state.num_issue_pairs):
         st.markdown("---")
 
     # Button to add another issue pair (capped at 5)
-    if st.session_state.num_issue_pairs < 5:
-        if st.button("➕ Add another issue", key="unique_global_add_issue_btn"):
+if st.session_state.num_issue_pairs < 5:
+    if st.button("➕ Add another issue", key="unique_global_add_issue_btn"):
             st.session_state.num_issue_pairs += 1
             st.rerun()
-    else:
-        st.caption("🔒 Maximum limit of 5 issue pairs (10 photos total) reached.")
+else:
+    st.caption("🔒 Maximum limit of 5 issue pairs (10 photos total) reached.")
 
-    st.markdown('</div>', unsafe_allow_html=True)
+st.markdown('</div>', unsafe_allow_html=True)
 
 
-    TENANT_VIEWS = [
+TENANT_VIEWS = [
         "Not sure yet",
         "Normal wear and tear",
         "Already there at move-in",
@@ -306,7 +306,7 @@ for i in range(st.session_state.num_issue_pairs):
     ]
 
 
-    mode, before_path, after_path, signature, demo_items = None, None, None, None, None
+mode, before_path, after_path, signature, demo_items = None, None, None, None, None
 
 if batched_uploaded_files:
     mode = "upload"
