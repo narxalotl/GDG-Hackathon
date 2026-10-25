@@ -288,7 +288,7 @@ for i in range(st.session_state.num_issue_pairs):
 
     # Button to add another issue pair (capped at 5)
     if st.session_state.num_issue_pairs < 5:
-        if st.button("➕ Add another issue", key="add_issue_pair_btn"):
+        if st.button("➕ Add another issue", key="add_issue_pair_btn_2"):
             st.session_state.num_issue_pairs += 1
             st.rerun()
     else:
