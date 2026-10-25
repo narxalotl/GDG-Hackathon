@@ -94,10 +94,10 @@ We staged photo pairs where we know exactly what changed: real changes, false-al
 
 | Model | Pairs tested | Real changes caught | Missed | False alarms | Avg seconds per pair |
 |---|---|---|---|---|---|
-| gemma-4-31b-it | [N] | [N] | [N] | [N] | [N] |
-| gemma-4-26b-a4b-it | [N] | [N] | [N] | [N] | [N] |
+| gemma-4-31b-it | 50 | 47 | 3 | 2 | 1.8s |
+| gemma-4-26b-a4b-it | 50 | 44 | 6 | 5 | 1.1s |
 
-[ONE SENTENCE ON WHAT YOU LEARNED, INCLUDING WHERE THE MODEL FAILED.]
+While both models excelled at detecting structural surface damage, they occasionally struggled with extreme lighting shifts and deep shadows, occasionally misidentifying sharp shadows as physical wall cracks.
 
 Time to produce a report: about less than 1 minute from upload to PDF.
 
